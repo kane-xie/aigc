@@ -900,12 +900,22 @@
       return { row, col };
     }
 
+    function confirmRestartGame() {
+      return window.confirm("确定重新开始吗？当前棋盘进度会丢失。");
+    }
+
+    function restartGameWithConfirm() {
+      if (confirmRestartGame()) {
+        setupGame();
+      }
+    }
+
     function continueAfterWin() {
       if (!finished) {
         overlayOpen = false;
         overlayEl.classList.remove("show");
       } else {
-        setupGame();
+        restartGameWithConfirm();
       }
     }
 
@@ -1032,7 +1042,7 @@
     }
 
     undoButton.addEventListener("click", undo);
-    newGameButton.addEventListener("click", setupGame);
+    newGameButton.addEventListener("click", restartGameWithConfirm);
     overlayAction.addEventListener("click", continueAfterWin);
 
     if (loadState()) {
