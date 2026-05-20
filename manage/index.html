@@ -1,0 +1,3698 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI 分身工作台</title>
+  <style>
+    :root {
+      --paper: #f5f5f7;
+      --white: #ffffff;
+      --ink: #1d1d1f;
+      --muted: #6e6e73;
+      --line: rgba(29, 29, 31, 0.10);
+      --blue: #0071e3;
+      --blue-soft: rgba(0, 113, 227, 0.075);
+      --blue-line: rgba(0, 113, 227, 0.22);
+      --surface: rgba(255, 255, 255, 0.78);
+      --surface-strong: rgba(255, 255, 255, 0.92);
+      --hairline: rgba(255, 255, 255, 0.84);
+      --green: #12764b;
+      --green-soft: #eaf7ef;
+      --amber: #986000;
+      --amber-soft: #fff6df;
+      --red: #b42318;
+      --red-soft: #fff1ef;
+      --shadow: 0 24px 62px rgba(0, 0, 0, 0.085), 0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.055), 0 1px 0 rgba(255, 255, 255, 0.78) inset;
+      --blue-shadow: 0 14px 34px rgba(0, 113, 227, 0.16);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --font: "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      --global-ai-dock-top: 90px;
+      --global-ai-dock-bottom: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 245, 247, 0.92) 52%, rgba(255, 255, 255, 0.96)),
+        linear-gradient(90deg, rgba(0, 113, 227, 0.030) 1px, transparent 1px) 0 0 / 88px 88px,
+        linear-gradient(rgba(0, 113, 227, 0.024) 1px, transparent 1px) 0 0 / 88px 88px,
+        var(--paper);
+      font-family: var(--font);
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent, rgba(0, 113, 227, 0.12), transparent) 50% 74px / 68% 1px no-repeat,
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), transparent 220px);
+      opacity: 1;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 74px 16px auto;
+      height: 1px;
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(0, 113, 227, 0.30), transparent);
+      opacity: 0.68;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 74px 1fr;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 22px;
+      border-bottom: 1px solid rgba(29, 29, 31, 0.08);
+      background: rgba(251, 251, 253, 0.76);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      backdrop-filter: blur(24px) saturate(190%);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset, 0 12px 30px rgba(0, 0, 0, 0.035);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 330px;
+    }
+
+    .brand-link {
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: transform 160ms ease, color 160ms ease;
+    }
+
+    .brand-link:hover {
+      transform: translateY(-1px);
+      color: var(--blue);
+    }
+
+    .mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(0, 113, 227, 0.28);
+      background: linear-gradient(180deg, #ffffff, #edf6ff);
+      color: var(--blue);
+      font-family: var(--mono);
+      font-weight: 850;
+      letter-spacing: 0;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 113, 227, 0.13), 0 0 0 4px rgba(0, 113, 227, 0.045), 0 1px 0 rgba(255, 255, 255, 0.92) inset;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      line-height: 1.12;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .tabs {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 430px;
+    }
+
+    .tab {
+      height: 38px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.66);
+      padding: 0 15px;
+      color: rgba(29, 29, 31, 0.66);
+      font-size: 14px;
+      font-weight: 760;
+      white-space: nowrap;
+      border-radius: 7px;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .tab.active {
+      border-color: var(--blue);
+      background: linear-gradient(180deg, #0a84ff, #0071e3);
+      color: var(--white);
+      box-shadow: var(--blue-shadow);
+    }
+
+    .top-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .run-mode-select {
+      position: relative;
+      z-index: 44;
+    }
+
+    .run-mode-trigger {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(0, 113, 227, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(245, 250, 255, 0.72)),
+        linear-gradient(90deg, rgba(0, 113, 227, 0.06) 1px, transparent 1px) 0 0 / 24px 24px;
+      color: rgba(29, 29, 31, 0.76);
+      padding: 0 11px;
+      border-radius: 999px;
+      box-shadow: var(--shadow-soft);
+      -webkit-backdrop-filter: blur(18px) saturate(170%);
+      backdrop-filter: blur(18px) saturate(170%);
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    .run-mode-trigger:hover,
+    .run-mode-select.open .run-mode-trigger {
+      transform: translateY(-1px);
+      border-color: rgba(0, 113, 227, 0.34);
+      box-shadow: 0 14px 34px rgba(0, 113, 227, 0.13), 0 1px 0 rgba(255, 255, 255, 0.86) inset;
+    }
+
+    .run-mode-trigger span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .run-mode-trigger strong {
+      color: var(--blue);
+      font-size: 13px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .run-mode-trigger i {
+      width: 7px;
+      height: 7px;
+      border-right: 1.5px solid currentColor;
+      border-bottom: 1.5px solid currentColor;
+      transform: rotate(45deg) translateY(-2px);
+      opacity: 0.62;
+    }
+
+    .run-mode-menu {
+      position: absolute;
+      top: calc(100% + 9px);
+      right: 0;
+      width: 276px;
+      display: grid;
+      gap: 6px;
+      border: 1px solid rgba(0, 113, 227, 0.18);
+      background: rgba(255, 255, 255, 0.92);
+      padding: 8px;
+      border-radius: 12px;
+      box-shadow: 0 22px 54px rgba(0, 0, 0, 0.14), 0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      backdrop-filter: blur(24px) saturate(180%);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px) scale(0.98);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .run-mode-select.open .run-mode-menu {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    .run-mode-option {
+      width: 100%;
+      display: grid;
+      gap: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 10px 11px;
+      text-align: left;
+      border-radius: 8px;
+      transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .run-mode-option:hover,
+    .run-mode-option.active {
+      border-color: rgba(0, 113, 227, 0.20);
+      background: rgba(0, 113, 227, 0.065);
+    }
+
+    .run-mode-option.active {
+      box-shadow: 0 8px 22px rgba(0, 113, 227, 0.08);
+    }
+
+    .run-mode-option strong {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .run-mode-option.active strong::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      background: var(--blue);
+      border-radius: 999px;
+      box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+    }
+
+    .run-mode-option span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .user-chip {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.68);
+      padding: 0 10px;
+      color: rgba(29, 29, 31, 0.74);
+      font-size: 12px;
+      border-radius: 999px;
+      box-shadow: var(--shadow-soft);
+      -webkit-backdrop-filter: blur(18px) saturate(170%);
+      backdrop-filter: blur(18px) saturate(170%);
+    }
+
+    .user-chip strong {
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .twin-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      border: 1px solid var(--hairline);
+      background: rgba(255, 255, 255, 0.58);
+      padding: 4px 5px 4px 10px;
+      border-radius: 8px;
+      box-shadow: var(--shadow-soft);
+      -webkit-backdrop-filter: blur(18px) saturate(170%);
+      backdrop-filter: blur(18px) saturate(170%);
+    }
+
+    .twin-state {
+      display: grid;
+      gap: 2px;
+      min-width: 112px;
+    }
+
+    .twin-state strong {
+      font-size: 13px;
+      line-height: 1.1;
+    }
+
+    .twin-state span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.1;
+    }
+
+    .btn {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      padding: 0 13px;
+      font-size: 13px;
+      font-weight: 650;
+      white-space: nowrap;
+      border-radius: 7px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease, background 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--blue);
+      background: rgba(255, 255, 255, 0.90);
+      color: var(--blue);
+      box-shadow: 0 8px 20px rgba(0, 113, 227, 0.10);
+    }
+
+    .btn.primary {
+      border-color: var(--blue);
+      background: linear-gradient(180deg, #0a84ff, #0071e3);
+      color: var(--white);
+      box-shadow: var(--blue-shadow);
+    }
+
+    .btn.warning {
+      border-color: rgba(152, 96, 0, 0.28);
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .btn.ghost {
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+    }
+
+    .main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 370px minmax(720px, 1fr);
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .panel {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border: 1px solid var(--hairline);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.68));
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      overflow: hidden;
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      backdrop-filter: blur(18px) saturate(160%);
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 12px;
+      right: 12px;
+      height: 1px;
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+    }
+
+    .ai-context-source {
+      position: relative;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .ai-context-source::after {
+      content: "";
+      display: none;
+    }
+
+    .ai-context-source:hover {
+      border-color: rgba(0, 113, 227, 0.34);
+      box-shadow: 0 14px 34px rgba(0, 113, 227, 0.10), 0 1px 0 rgba(255, 255, 255, 0.72) inset;
+    }
+
+    .context-focus {
+      border-color: rgba(0, 113, 227, 0.45) !important;
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12), 0 18px 42px rgba(0, 113, 227, 0.14) !important;
+    }
+
+    .context-ai-popover {
+      position: fixed;
+      z-index: 31;
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(0, 113, 227, 0.22);
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--blue);
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 780;
+      border-radius: 999px;
+      box-shadow: 0 16px 38px rgba(0, 113, 227, 0.16), 0 1px 0 rgba(255, 255, 255, 0.90) inset;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      backdrop-filter: blur(18px) saturate(180%);
+    }
+
+    .context-ai-popover.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .context-ai-popover::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: var(--blue);
+      border-radius: 999px;
+      box-shadow: 0 0 14px rgba(0, 113, 227, 0.44);
+    }
+
+    .panel-head {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(245, 245, 247, 0.54));
+    }
+
+    .panel-head h2 {
+      font-size: 15px;
+      line-height: 1.2;
+      font-weight: 780;
+    }
+
+    .panel-head span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .scroll {
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .left {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .identity {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(0, 113, 227, 0.18);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(237, 246, 255, 0.72)),
+        linear-gradient(90deg, rgba(0, 113, 227, 0.06) 1px, transparent 1px) 0 0 / 34px 34px;
+      padding: 14px;
+      border-radius: 8px;
+    }
+
+    .identity::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 12px;
+      right: 12px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 113, 227, 0.62), transparent);
+    }
+
+    .identity h3 {
+      font-size: 19px;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .identity p {
+      color: rgba(29, 29, 31, 0.72);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .thread {
+      display: grid;
+      gap: 9px;
+    }
+
+    .message {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 11px;
+      border-radius: 7px;
+    }
+
+    .message.ai {
+      border-color: var(--blue-line);
+      background: var(--blue-soft);
+      box-shadow: 0 8px 22px rgba(0, 113, 227, 0.08);
+    }
+
+    .message.me {
+      border-color: rgba(18, 118, 75, 0.24);
+      background: var(--green-soft);
+    }
+
+    .message h3 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+      font-size: 12px;
+      line-height: 1.2;
+      font-family: var(--mono);
+      color: var(--muted);
+    }
+
+    .message p {
+      color: rgba(29, 29, 31, 0.76);
+      font-size: 13px;
+      line-height: 1.48;
+    }
+
+    .twin-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .twin-card {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 11px;
+      border-radius: 7px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset;
+    }
+
+    .twin-card {
+      display: grid;
+      gap: 10px;
+    }
+
+    .twin-card.active {
+      border-color: var(--blue-line);
+      background: var(--blue-soft);
+      box-shadow: 0 10px 26px rgba(0, 113, 227, 0.09);
+    }
+
+    .twin-card header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .twin-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .twin-ai-icon {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(0, 113, 227, 0.30);
+      background: rgba(7, 26, 31, 0.86);
+      color: rgba(232, 251, 255, 0.94);
+      letter-spacing: 0;
+      border-radius: 12px;
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.055), 0 0 18px rgba(79, 213, 255, 0.16);
+    }
+
+    .twin-ai-icon span {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      line-height: 1;
+    }
+
+    .twin-ai-icon svg {
+      width: 27px;
+      height: 27px;
+      display: block;
+      overflow: visible;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 8px rgba(79, 213, 255, 0.28));
+    }
+
+    .twin-ai-icon::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      background: radial-gradient(circle at 50% 8%, rgba(79, 213, 255, 0.20), transparent 38%);
+      pointer-events: none;
+    }
+
+    .twin-ai-icon::after {
+      content: "";
+      position: absolute;
+      right: 5px;
+      bottom: 5px;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(99, 240, 183, 0.54);
+    }
+
+    .twin-card h3 {
+      font-size: 14px;
+      line-height: 1.24;
+      margin-bottom: 0;
+    }
+
+    .twin-card p {
+      color: rgba(29, 29, 31, 0.68);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .twin-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .twin-metric {
+      min-height: 58px;
+      border: 1px solid rgba(0, 113, 227, 0.14);
+      background: rgba(255, 255, 255, 0.62);
+      padding: 8px;
+      text-align: left;
+      border-radius: 6px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset;
+    }
+
+    button.twin-metric {
+      cursor: pointer;
+    }
+
+    button.twin-metric:hover {
+      border-color: var(--blue);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 8px 20px rgba(0, 113, 227, 0.10), 0 1px 0 rgba(255, 255, 255, 0.78) inset;
+    }
+
+    .twin-metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .twin-metric strong {
+      display: block;
+      margin-top: 6px;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 17px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .twin-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .twin-action {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.68);
+      color: rgba(29, 29, 31, 0.78);
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 820;
+      white-space: nowrap;
+      border-radius: 7px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset;
+      transition: border-color 160ms ease, background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .twin-action:hover {
+      border-color: var(--blue);
+      background: rgba(255, 255, 255, 0.90);
+      color: var(--blue);
+      box-shadow: 0 8px 20px rgba(0, 113, 227, 0.10);
+    }
+
+    .twin-action.warning {
+      border-color: rgba(152, 96, 0, 0.28);
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .twin-action.primary {
+      border-color: var(--blue);
+      background: linear-gradient(180deg, #0a84ff, #0071e3);
+      color: var(--white);
+      box-shadow: var(--blue-shadow);
+    }
+
+    .twin-current {
+      border: 1px solid rgba(0, 113, 227, 0.14);
+      background: rgba(255, 255, 255, 0.58);
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .twin-todos,
+    .running-lines {
+      display: grid;
+      gap: 6px;
+    }
+
+    .todo-line,
+    .running-line {
+      display: grid;
+      grid-template-columns: 16px 1fr;
+      gap: 7px;
+      color: rgba(29, 29, 31, 0.74);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .todo-line::before,
+    .running-line::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      margin-top: 5px;
+      background: var(--blue);
+      border-radius: 999px;
+      box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.10);
+    }
+
+    .running-line.muted::before {
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(18, 118, 75, 0.10);
+    }
+
+    .center {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) 164px;
+      gap: 10px;
+    }
+
+    .decision-main {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      border-color: rgba(29, 29, 31, 0.12);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(251, 251, 253, 0.82));
+      box-shadow:
+        0 26px 64px rgba(0, 0, 0, 0.105),
+        0 0 0 6px rgba(0, 113, 227, 0.030),
+        0 0 0 1px rgba(0, 113, 227, 0.08),
+        0 1px 0 rgba(255, 255, 255, 0.90) inset;
+    }
+
+    .decision-main::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      pointer-events: none;
+      background: linear-gradient(90deg, rgba(0, 113, 227, 0), rgba(0, 113, 227, 0.72) 18%, rgba(0, 113, 227, 0.18) 54%, rgba(0, 113, 227, 0));
+    }
+
+    .case-head {
+      position: relative;
+      overflow: hidden;
+      padding: 20px 22px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.74);
+    }
+
+    .case-kicker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .case-kicker span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    #caseMeta {
+      min-height: 27px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid rgba(0, 113, 227, 0.18);
+      background: rgba(0, 113, 227, 0.065);
+      color: var(--blue);
+      padding: 0 10px;
+      font-family: var(--font);
+      font-weight: 820;
+      border-radius: 999px;
+    }
+
+    #caseMeta::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: var(--blue);
+      border-radius: 999px;
+      box-shadow: 0 0 12px rgba(0, 113, 227, 0.38);
+    }
+
+    .risk {
+      height: 25px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.58);
+      padding: 0 9px;
+      font-size: 12px;
+      font-weight: 820;
+      white-space: nowrap;
+      border-radius: 999px;
+    }
+
+    .risk.high {
+      color: var(--red);
+      border-color: rgba(180, 35, 24, 0.26);
+      background: var(--red-soft);
+    }
+
+    .risk.mid {
+      color: var(--amber);
+      border-color: rgba(152, 96, 0, 0.3);
+      background: var(--amber-soft);
+    }
+
+    .risk.low {
+      color: var(--green);
+      border-color: rgba(18, 118, 75, 0.24);
+      background: var(--green-soft);
+    }
+
+    .case-head h2 {
+      max-width: 900px;
+      font-size: 26px;
+      line-height: 1.14;
+      font-weight: 760;
+      letter-spacing: 0;
+      margin-bottom: 10px;
+    }
+
+    .case-head p {
+      color: rgba(29, 29, 31, 0.68);
+      font-size: 14px;
+      line-height: 1.52;
+    }
+
+    .case-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-content: start;
+      background: linear-gradient(180deg, rgba(251, 251, 253, 0.72), rgba(255, 255, 255, 0.88));
+    }
+
+    .evidence {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 12px;
+      min-height: 116px;
+      border-radius: 7px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset;
+    }
+
+    .evidence.emph {
+      border-color: var(--blue-line);
+      background: var(--blue-soft);
+    }
+
+    .evidence label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.2;
+      margin-bottom: 7px;
+    }
+
+    .evidence strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .evidence p {
+      color: rgba(29, 29, 31, 0.72);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .transcript {
+      grid-column: 1 / -1;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.54);
+      padding: 12px;
+      border-radius: 7px;
+    }
+
+    .transcript h3 {
+      margin-bottom: 9px;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .line {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 10px;
+      padding: 8px 0;
+      border-top: 1px solid rgba(29, 29, 31, 0.08);
+      font-size: 13px;
+      line-height: 1.45;
+      color: rgba(29, 29, 31, 0.74);
+    }
+
+    .line:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .line span:first-child {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .case-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.60);
+    }
+
+    .action-left {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .small {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 0 11px;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+      border-radius: 7px;
+      transition: border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .small:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      box-shadow: 0 8px 20px rgba(0, 113, 227, 0.10);
+    }
+
+    .small.primary {
+      border-color: var(--blue);
+      background: linear-gradient(180deg, #0a84ff, #0071e3);
+      color: var(--white);
+      box-shadow: var(--blue-shadow);
+    }
+
+    .queue-panel {
+      box-shadow: var(--shadow-soft);
+    }
+
+    .queue-panel .panel-head {
+      min-height: 40px;
+      padding: 9px 12px;
+    }
+
+    .queue-panel .panel-head > div {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .queue-panel .panel-head h2 {
+      font-size: 13px;
+    }
+
+    .queue-panel .panel-head span {
+      font-size: 11px;
+    }
+
+    .next-cases {
+      flex: 1;
+      min-height: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 10px 12px 12px;
+      display: flex;
+      gap: 8px;
+      scrollbar-gutter: stable;
+    }
+
+    .next-card {
+      flex: 0 0 220px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 10px;
+      text-align: left;
+      min-height: 96px;
+      border-radius: 7px;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .next-card.active {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+      box-shadow: 0 10px 26px rgba(0, 113, 227, 0.10);
+    }
+
+    .next-card.done {
+      border-color: rgba(18, 118, 75, 0.24);
+      background: var(--green-soft);
+    }
+
+    .next-card h3 {
+      margin-bottom: 4px;
+      font-size: 12px;
+      line-height: 1.22;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .next-card p {
+      color: rgba(29, 29, 31, 0.68);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .source-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      margin-bottom: 7px;
+      border: 1px solid var(--blue-line);
+      background: var(--blue-soft);
+      color: var(--blue);
+      padding: 0 8px;
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 820;
+      border-radius: 999px;
+    }
+
+    .chain-note {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(29, 29, 31, 0.1);
+      color: rgba(29, 29, 31, 0.58);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .global-ai-button {
+      position: fixed;
+      z-index: 20;
+      right: 22px;
+      bottom: 22px;
+      min-width: 132px;
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 1px solid rgba(0, 113, 227, 0.34);
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.18) 24%, transparent 36%),
+        linear-gradient(135deg, rgba(12, 132, 255, 0.98), rgba(0, 113, 227, 0.90) 48%, rgba(16, 32, 80, 0.96));
+      color: var(--white);
+      padding: 0 18px 0 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 860;
+      letter-spacing: 0;
+      overflow: hidden;
+      box-shadow:
+        0 20px 48px rgba(0, 113, 227, 0.30),
+        0 0 0 5px rgba(0, 113, 227, 0.075),
+        0 1px 0 rgba(255, 255, 255, 0.42) inset;
+      -webkit-backdrop-filter: blur(18px) saturate(180%);
+      backdrop-filter: blur(18px) saturate(180%);
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+
+    .global-ai-button:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 113, 227, 0.62);
+      box-shadow:
+        0 26px 60px rgba(0, 113, 227, 0.36),
+        0 0 0 6px rgba(0, 113, 227, 0.10),
+        0 1px 0 rgba(255, 255, 255, 0.48) inset;
+    }
+
+    .global-ai-button::before {
+      content: "AI";
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.40);
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.18) 46%, transparent 72%),
+        rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 900;
+      border-radius: 999px;
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.58), 0 0 22px rgba(0, 113, 227, 0.34) inset;
+    }
+
+    .global-ai-button::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(100deg, transparent 0 34%, rgba(255, 255, 255, 0.44) 48%, transparent 62% 100%),
+        linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent) 0 50% / 100% 1px no-repeat;
+      transform: translateX(-140%);
+      animation: sheen 3.8s ease-in-out infinite;
+    }
+
+	    .global-ai-dock {
+	      position: fixed;
+	      z-index: 30;
+	      top: var(--global-ai-dock-top);
+	      right: 0;
+	      bottom: var(--global-ai-dock-bottom);
+	      width: 33.333vw;
+	      min-width: 420px;
+	      max-width: min(560px, calc(100vw - 32px));
+	      height: auto;
+	      display: grid;
+      grid-template-rows: auto auto auto 1fr auto;
+      border: 0;
+      border-left: 1px solid rgba(0, 113, 227, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 250, 255, 0.86)),
+        linear-gradient(90deg, rgba(0, 113, 227, 0.055) 1px, transparent 1px) 0 0 / 42px 42px;
+	      border-radius: 12px 0 0 12px;
+      box-shadow: -28px 0 80px rgba(0, 0, 0, 0.16), -1px 0 0 rgba(255, 255, 255, 0.88) inset;
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      backdrop-filter: blur(22px) saturate(180%);
+      overflow: hidden;
+      opacity: 0.98;
+      pointer-events: none;
+      transform: translateX(calc(100% + 24px));
+      transition: transform 260ms cubic-bezier(.2, .8, .2, 1), box-shadow 260ms ease;
+    }
+
+    .global-ai-dock.open {
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .global-ai-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 245, 247, 0.82));
+    }
+
+    .global-ai-head h3 {
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .global-ai-head span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .context-strip,
+    .suggestion-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 12px 0;
+    }
+
+    .context-chip,
+    .suggestion {
+      min-height: 24px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.58);
+      color: rgba(29, 29, 31, 0.70);
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .context-chip {
+      border-color: var(--blue-line);
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .suggestion:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    .global-ai-log {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .global-msg {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      padding: 9px 10px;
+      border-radius: 7px;
+      color: rgba(29, 29, 31, 0.74);
+      font-size: 13px;
+      line-height: 1.48;
+      white-space: pre-wrap;
+    }
+
+    .global-msg.me {
+      border-color: rgba(18, 118, 75, 0.24);
+      background: var(--green-soft);
+    }
+
+    .global-msg.ai {
+      border-color: var(--blue-line);
+      background: var(--blue-soft);
+    }
+
+    .global-ai-input {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.54);
+    }
+
+    .global-ai-input input {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+      border-radius: 7px;
+      padding: 0 10px;
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .global-ai-input input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.10);
+    }
+
+    .task-dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 42;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(245, 245, 247, 0.46);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      backdrop-filter: blur(18px) saturate(160%);
+    }
+
+    .task-dialog-backdrop.open {
+      display: flex;
+    }
+
+    .task-dialog {
+      width: 520px;
+      max-width: calc(100vw - 48px);
+      border: 1px solid var(--hairline);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78));
+      border-radius: 8px;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16), 0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      overflow: hidden;
+    }
+
+    .task-dialog-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.70);
+    }
+
+    .task-dialog-head h3 {
+      font-size: 15px;
+      line-height: 1.25;
+      margin-bottom: 5px;
+    }
+
+    .task-dialog-head p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .task-dialog-body {
+      padding: 14px 16px;
+    }
+
+    .task-input {
+      width: 100%;
+      min-height: 116px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--ink);
+      padding: 11px;
+      border-radius: 7px;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    .task-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.10);
+    }
+
+    .task-list {
+      display: grid;
+      gap: 8px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .task-item {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.70);
+      padding: 10px;
+      border-radius: 7px;
+    }
+
+    .task-item h4 {
+      margin: 0 0 5px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .task-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .task-empty {
+      border: 1px dashed var(--line);
+      background: rgba(255, 255, 255, 0.54);
+      color: var(--muted);
+      padding: 18px;
+      text-align: center;
+      border-radius: 7px;
+      font-size: 13px;
+    }
+
+    .task-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    @keyframes sheen {
+      0%, 58% {
+        transform: translateX(-140%);
+      }
+      74%, 100% {
+        transform: translateX(140%);
+      }
+    }
+
+    /* Cyber AI agents visual theme */
+    :root {
+      --paper: #05090a;
+      --white: #f4fbff;
+      --ink: #eef8ff;
+      --muted: rgba(198, 226, 239, 0.68);
+      --line: rgba(111, 219, 255, 0.20);
+      --blue: #4fd5ff;
+      --blue-soft: rgba(79, 213, 255, 0.12);
+      --blue-line: rgba(79, 213, 255, 0.42);
+      --surface: rgba(9, 22, 26, 0.72);
+      --surface-strong: rgba(10, 28, 34, 0.88);
+      --hairline: rgba(132, 226, 255, 0.25);
+      --green: #63f0b7;
+      --green-soft: rgba(34, 177, 125, 0.15);
+      --amber: #ffd36a;
+      --amber-soft: rgba(255, 194, 82, 0.14);
+      --red: #ff6b7a;
+      --red-soft: rgba(255, 83, 112, 0.14);
+      --shadow: 0 26px 72px rgba(0, 0, 0, 0.54), 0 1px 0 rgba(255, 255, 255, 0.07) inset;
+      --shadow-soft: 0 16px 42px rgba(0, 0, 0, 0.36), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+      --blue-shadow: 0 14px 34px rgba(79, 213, 255, 0.14);
+    }
+
+    html,
+    body {
+      background: #05090a;
+      color: var(--ink);
+    }
+
+    body::before {
+      display: none;
+      background: none;
+      opacity: 0;
+    }
+
+    body::after {
+      inset: 74px 18px 18px;
+      height: auto;
+      display: none;
+      background: none;
+      opacity: 0;
+      mask-image: none;
+    }
+
+    .app {
+      isolation: isolate;
+    }
+
+    .app::before {
+      content: none;
+      display: none;
+    }
+
+    .topbar {
+      border-bottom-color: rgba(111, 219, 255, 0.18);
+      background: rgba(3, 10, 12, 0.72);
+      box-shadow: 0 1px 0 rgba(137, 229, 255, 0.16) inset, 0 18px 46px rgba(0, 0, 0, 0.34);
+    }
+
+    .avatar,
+    .mark {
+      border-color: rgba(79, 213, 255, 0.56);
+      background: linear-gradient(180deg, rgba(68, 211, 255, 0.18), rgba(5, 15, 18, 0.94));
+      color: var(--white);
+      box-shadow: 0 0 0 4px rgba(79, 213, 255, 0.10), 0 0 28px rgba(79, 213, 255, 0.34), 0 1px 0 rgba(255, 255, 255, 0.18) inset;
+    }
+
+    .brand h1,
+    .panel-head h2,
+    .case-head h2,
+    .next-card h3,
+    .twin-card h3,
+    .evidence strong,
+    .transcript h3 {
+      color: var(--ink);
+      text-shadow: 0 0 18px rgba(79, 213, 255, 0.16);
+    }
+
+    .brand p,
+    .panel-head span,
+    .case-head p,
+    .twin-card p,
+    .message p,
+    .evidence p,
+    .action-left,
+    .next-card p,
+    .line,
+    .task-dialog-head p {
+      color: var(--muted);
+    }
+
+    .run-mode-trigger,
+    .user-chip,
+    .panel,
+    .decision-main,
+    .case-head,
+    .case-body,
+    .identity,
+    .message,
+    .twin-card,
+    .twin-metric,
+    .twin-current,
+    .next-card,
+    .evidence,
+    .transcript,
+    .task-dialog,
+    .task-item,
+    .global-ai-dock {
+      border-color: var(--line);
+      background:
+        linear-gradient(180deg, rgba(15, 37, 43, 0.78), rgba(5, 14, 17, 0.62)),
+        linear-gradient(90deg, rgba(79, 213, 255, 0.035) 1px, transparent 1px) 0 0 / 28px 28px;
+      box-shadow: var(--shadow-soft);
+      color: var(--ink);
+    }
+
+    .panel,
+    .decision-main {
+      background:
+        linear-gradient(180deg, rgba(13, 31, 36, 0.72), rgba(4, 10, 12, 0.62)),
+        radial-gradient(circle at 18% 0%, rgba(79, 213, 255, 0.12), transparent 34%);
+    }
+
+    .panel::before,
+    .identity::before,
+    .decision-main::after {
+      background: linear-gradient(90deg, transparent, rgba(79, 213, 255, 0.92), transparent);
+      box-shadow: 0 0 18px rgba(79, 213, 255, 0.42);
+    }
+
+    .panel-head,
+    .case-actions,
+    .queue-panel .panel-head,
+    .task-dialog-head,
+    .task-dialog-actions,
+    .global-ai-head,
+    .global-ai-input {
+      border-color: rgba(111, 219, 255, 0.16);
+      background: rgba(3, 11, 13, 0.34);
+    }
+
+    .run-mode-menu {
+      border-color: rgba(111, 219, 255, 0.28);
+      background:
+        linear-gradient(180deg, rgba(12, 31, 37, 0.96), rgba(3, 10, 13, 0.92)),
+        linear-gradient(90deg, rgba(79, 213, 255, 0.05) 1px, transparent 1px) 0 0 / 28px 28px;
+      box-shadow:
+        0 24px 56px rgba(0, 0, 0, 0.48),
+        0 0 0 1px rgba(79, 213, 255, 0.08),
+        0 0 32px rgba(79, 213, 255, 0.14),
+        0 1px 0 rgba(255, 255, 255, 0.14) inset;
+      color: var(--ink);
+    }
+
+    .run-mode-option {
+      border-color: rgba(111, 219, 255, 0.10);
+      background: rgba(5, 17, 21, 0.42);
+    }
+
+    .run-mode-option:hover,
+    .run-mode-option.active {
+      border-color: rgba(111, 219, 255, 0.42);
+      background:
+        radial-gradient(circle at 18% 0%, rgba(79, 213, 255, 0.18), transparent 42%),
+        rgba(79, 213, 255, 0.10);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24), 0 0 18px rgba(79, 213, 255, 0.10);
+    }
+
+    .run-mode-option strong {
+      color: rgba(232, 251, 255, 0.96);
+    }
+
+    .run-mode-option span {
+      color: rgba(190, 225, 239, 0.66);
+    }
+
+    .run-mode-option.active strong::after {
+      background: var(--blue);
+      box-shadow: 0 0 0 4px rgba(79, 213, 255, 0.12), 0 0 16px rgba(79, 213, 255, 0.54);
+    }
+
+    .decision-main,
+    .twin-card.active,
+    .next-card.active,
+    .evidence.emph,
+    .message.ai {
+      border-color: rgba(79, 213, 255, 0.58);
+      background:
+        radial-gradient(circle at 18% 0%, rgba(79, 213, 255, 0.20), transparent 38%),
+        linear-gradient(145deg, rgba(17, 48, 57, 0.82), rgba(5, 14, 17, 0.68));
+      box-shadow: 0 0 0 1px rgba(79, 213, 255, 0.10), 0 22px 56px rgba(0, 0, 0, 0.42), 0 0 36px rgba(79, 213, 255, 0.16);
+    }
+
+    .twin-ai-icon {
+      border-color: rgba(111, 219, 255, 0.40);
+      background: rgba(6, 24, 30, 0.92);
+      color: rgba(232, 251, 255, 0.94);
+      box-shadow:
+        0 0 0 3px rgba(79, 213, 255, 0.09),
+        0 0 24px rgba(79, 213, 255, 0.24),
+        0 14px 30px rgba(0, 0, 0, 0.36);
+    }
+
+    .twin-ai-icon::before {
+      background: radial-gradient(circle at 50% 8%, rgba(79, 213, 255, 0.24), transparent 38%);
+    }
+
+    .twin-ai-icon::after {
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(99, 240, 183, 0.66);
+    }
+
+    .twin-ai-icon svg {
+      filter: drop-shadow(0 0 10px rgba(79, 213, 255, 0.42));
+    }
+
+    .twin-card.active .twin-ai-icon {
+      box-shadow:
+        0 0 0 3px rgba(79, 213, 255, 0.13),
+        0 0 30px rgba(79, 213, 255, 0.34),
+        0 16px 34px rgba(0, 0, 0, 0.42);
+    }
+
+    .message.me,
+    .next-card.done {
+      border-color: rgba(99, 240, 183, 0.28);
+      background: rgba(25, 96, 74, 0.18);
+    }
+
+    .evidence label,
+    .line span:first-child,
+    .twin-metric span,
+    .task-item p {
+      color: rgba(190, 225, 239, 0.62);
+    }
+
+    .source-pill,
+    #caseMeta,
+    .context-chip,
+    .suggestion {
+      border-color: rgba(79, 213, 255, 0.32);
+      background: rgba(79, 213, 255, 0.10);
+      color: rgba(219, 246, 255, 0.92);
+      text-shadow: 0 0 16px rgba(79, 213, 255, 0.26);
+    }
+
+    .risk.high {
+      color: var(--red);
+      border-color: rgba(255, 107, 122, 0.38);
+      background: var(--red-soft);
+    }
+
+    .risk.mid {
+      color: var(--amber);
+      border-color: rgba(255, 211, 106, 0.38);
+      background: var(--amber-soft);
+    }
+
+    .risk.low {
+      color: var(--green);
+      border-color: rgba(99, 240, 183, 0.32);
+      background: var(--green-soft);
+    }
+
+    .small,
+    .twin-action {
+      border-color: rgba(111, 219, 255, 0.24);
+      background: rgba(8, 22, 27, 0.74);
+      color: rgba(230, 249, 255, 0.86);
+    }
+
+    .small.primary,
+    .twin-action.primary,
+    .global-ai-button {
+      border-color: rgba(117, 226, 255, 0.74);
+      background:
+        linear-gradient(135deg, rgba(79, 213, 255, 0.98), rgba(39, 104, 255, 0.88) 52%, rgba(11, 28, 48, 0.96));
+      color: #f8fdff;
+      box-shadow: var(--blue-shadow);
+    }
+
+    .twin-action.warning {
+      border-color: rgba(255, 211, 106, 0.36);
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .todo-line,
+    .running-line {
+      color: rgba(226, 248, 255, 0.82);
+    }
+
+    .todo-line::before,
+    .running-line::before {
+      background: var(--blue);
+      box-shadow: 0 0 0 4px rgba(79, 213, 255, 0.12), 0 0 18px rgba(79, 213, 255, 0.44);
+    }
+
+    .running-line.muted::before {
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(99, 240, 183, 0.12), 0 0 18px rgba(99, 240, 183, 0.44);
+    }
+
+    .global-ai-log,
+    .global-ai-input input,
+    .task-input {
+      background: rgba(3, 10, 12, 0.72);
+      border-color: rgba(111, 219, 255, 0.22);
+      color: var(--ink);
+    }
+
+    .global-msg.ai {
+      border-color: rgba(79, 213, 255, 0.22);
+      background: rgba(79, 213, 255, 0.10);
+      color: rgba(226, 248, 255, 0.92);
+    }
+
+    .context-ai-popover {
+      border-color: rgba(111, 219, 255, 0.30);
+      background: rgba(5, 17, 21, 0.88);
+      color: rgba(221, 247, 255, 0.92);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34), 0 0 18px rgba(79, 213, 255, 0.12), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+    }
+
+    .context-ai-popover::before {
+      background: rgba(79, 213, 255, 0.82);
+      box-shadow: 0 0 10px rgba(79, 213, 255, 0.46);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    @media (max-width: 1280px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        min-height: 100vh;
+        height: auto;
+      }
+
+      .topbar,
+      .main {
+        min-width: 1160px;
+      }
+
+      .main {
+        min-height: 840px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <a class="brand brand-link" href="../insurance_ops_digital_employee_demo/index.html" title="切换到王敏的 AI 分身工作台">
+        <div class="mark">AI</div>
+        <div>
+          <h1>AI 分身工作台</h1>
+          <p>陈静 · 一线管理员</p>
+        </div>
+      </a>
+
+      <div class="top-actions">
+        <div class="run-mode-select" id="runModeSelect">
+          <button class="run-mode-trigger" id="runModeTrigger" type="button" aria-haspopup="true" aria-expanded="false">
+            <span>运行模式</span>
+            <strong id="runModeLabel">监督模式</strong>
+            <i aria-hidden="true"></i>
+          </button>
+          <div class="run-mode-menu" id="runModeMenu" role="menu" aria-label="AI 分身自主程度">
+            <button class="run-mode-option" type="button" data-run-mode="assist" role="menuitem">
+              <strong>辅助模式</strong>
+              <span>AI 准备材料和建议，执行前逐项确认。</span>
+            </button>
+            <button class="run-mode-option active" type="button" data-run-mode="supervised" role="menuitem">
+              <strong>监督模式</strong>
+              <span>低风险动作自动执行，中高风险等你拍板。</span>
+            </button>
+            <button class="run-mode-option" type="button" data-run-mode="yolo" role="menuitem">
+              <strong>YOLO 模式</strong>
+              <span>AI 分身全自动执行，过程留痕，事后复盘。</span>
+            </button>
+          </div>
+        </div>
+        <div class="user-chip"><span>当前登录用户</span><strong>陈静</strong></div>
+      </div>
+    </header>
+
+    <main class="main">
+      <aside class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 id="personaTitle">我的工作间</h2>
+            <span id="clockText">09:42</span>
+          </div>
+        </div>
+        <div class="scroll">
+          <div class="left">
+            <section>
+              <div class="thread" id="thread"></div>
+            </section>
+          </div>
+        </div>
+      </aside>
+
+      <section class="center">
+        <section class="panel decision-main">
+          <div class="case-head ai-context-source" data-ai-context="current-case" title="停留后显示问 AI">
+            <div class="case-kicker">
+              <span id="caseMeta">AI 分身请求确认</span>
+              <span class="risk" id="caseRisk">风险</span>
+            </div>
+            <h2 id="caseTitle"></h2>
+            <p id="caseSummary"></p>
+          </div>
+          <div class="case-body" id="caseBody"></div>
+          <div class="case-actions">
+            <div class="action-left" id="actionHint"></div>
+            <div class="action-buttons">
+              <button class="small" id="evidenceBtn">要求补证据</button>
+              <button class="small" id="altBtn">换个处理</button>
+              <button class="small primary" id="approveBtn">同意执行</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel queue-panel">
+          <div class="panel-head">
+            <div>
+              <h2>今天需要我拍板的事</h2>
+              <span id="caseCount">0 / 0</span>
+            </div>
+          </div>
+          <div class="next-cases" id="caseList"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <button class="global-ai-button" id="globalAiButton">随时问AI</button>
+  <section class="global-ai-dock" id="globalAiDock" aria-label="全局 AI 追问">
+    <div class="global-ai-head">
+      <div>
+        <h3>随时问 AI</h3>
+        <span id="globalAiSubtitle">自动读取当前页面上下文</span>
+      </div>
+      <button class="small" id="globalAiClose">收起</button>
+    </div>
+    <div class="context-strip" id="globalContext"></div>
+    <div class="suggestion-row" id="globalSuggestions"></div>
+    <div class="global-ai-log" id="globalAiLog"></div>
+    <div class="global-ai-input">
+      <input id="globalAiInput" type="text" placeholder="问当前工单、坐席历史、规则依据、回写责任链..." />
+      <button class="small primary" id="globalAiAsk">发送</button>
+    </div>
+  </section>
+
+  <section class="task-dialog-backdrop" id="taskDialog" aria-hidden="true">
+    <div class="task-dialog" role="dialog" aria-modal="true" aria-labelledby="taskDialogTitle">
+      <div class="task-dialog-head">
+        <div>
+          <h3 id="taskDialogTitle">任务</h3>
+          <p id="taskDialogSubtitle"></p>
+        </div>
+        <button class="small" id="taskDialogClose">关闭</button>
+      </div>
+      <div class="task-dialog-body" id="taskDialogBody"></div>
+      <div class="task-dialog-actions" id="taskDialogActions"></div>
+    </div>
+  </section>
+
+  <script>
+    const LINK_KEY = "insurance_ops_linked_action_events_v1";
+
+    const roles = {
+      field: {
+        person: "陈静",
+        roleName: "现场管理员",
+        twin: "现场管理小chen",
+        shiftTitle: "09:42，A 组和 B 组已经开工 72 分钟",
+        shiftBrief: "你的分身已经看过排班、坐席状态、名单池、通话片段和投诉苗头。它没有让你盯实时大屏，只把 3 件需要现场判断的事推给你。",
+        status: [
+          ["待确认", "3 件"],
+          ["已自动处理", "11 件"],
+          ["涉及坐席", "9 人"],
+          ["预计影响", "42 单"]
+        ],
+        thread: [
+          ["ai", "09:08", "我已把昨晚遗留的 31 条未跟进名单重新分配，低风险动作已经直接执行。"],
+          ["ai", "09:21", "发现 1083 连续 6 通没有完成异议复述，其中 2 通是高价值客户。我先把证据整理好了。"],
+          ["ai", "09:39", "午间 12:10 会出现接通峰值，当前排班会少 3 个在线坐席。我准备了一个休息批次调整方案。"]
+        ],
+        background: [
+          ["已重排昨晚遗留名单", "31 条未跟进名单已按坐席转化能力重新分配。"],
+          ["已提醒 4 名长空闲坐席", "空闲超过 90 秒的坐席已收到侧边提示。"],
+          ["已标记 2 个投诉苗头", "客户负向情绪和重复来电已进入跟进池。"],
+          ["已准备午间排班方案", "休息批次调整影响 17 名坐席，需你确认。"]
+        ],
+        cases: [
+          {
+            title: "是否把坐席 1083 暂时移出高价值名单池？",
+            meta: "AI 分身请求你确认 · 09:42",
+            risk: "中风险",
+            riskLevel: "mid",
+            summary: "1083 今天开场稳定，但异议处理明显低于组均。AI 已先把后续高价值名单扣住，等你决定是暂停 2 小时，还是只做提醒。",
+            hint: "这个动作会影响 42 条高价值名单的分配，需要现场管理员背书。",
+            approve: "同意暂停 2 小时",
+            alternate: "只提醒不暂停",
+            evidence: [
+              ["行为证据", "6 通异常", "1083 连续 6 通没有复述客户异议，2 通客户直接挂断。"],
+              ["名单影响", "42 条", "后续 2 小时内，1083 队列里还有 42 条高价值客户名单。"],
+              ["AI 建议", "暂停承接", "将高价值名单转给 6 名高转化坐席，1083 切到低风险训练名单。"],
+              ["可回滚", "2 小时", "动作只影响 2 小时，期间持续观察训练名单表现。"]
+            ],
+            transcript: [
+              ["客户", "去年我这个保险也没用上，今年有必要续吗？"],
+              ["坐席 1083", "价格其实也不高，您先续上比较稳妥。"],
+              ["AI 标注", "缺少保障价值复述，未回应“没用上”的核心异议。"]
+            ],
+            extra: [
+              ["相似对比", "组均 84%", "同类异议下，A 组优秀坐席会先复述客户担忧，再讲保障场景。"],
+              ["历史表现", "近 3 天下降", "1083 的高价值名单转化率较上周下降 7.6pt。"]
+            ],
+            sentTitle: "1083 高价值名单权限已调整",
+            sent: "已暂停 1083 高价值名单承接 2 小时，42 条名单转给高转化坐席，并给 1083 下发异议复述训练任务。",
+            altSent: "已仅提醒 1083 并保留名单权限，AI 将每 20 分钟复查一次异议处理。"
+          },
+          {
+            title: "午间二批休息是否延后 20 分钟？",
+            meta: "AI 分身请求你确认 · 09:47",
+            risk: "中风险",
+            riskLevel: "mid",
+            summary: "12:10 前后会出现接通峰值。如果不调休息批次，预计接通率会下降 4.8pt。",
+            hint: "这个动作会影响坐席休息安排，AI 需要你确认后再通知班长。",
+            approve: "延后 20 分钟",
+            alternate: "不调整休息",
+            evidence: [
+              ["峰值时间", "12:10", "历史同类活动日，午间第一波峰值集中在 12:05-12:25。"],
+              ["产能缺口", "3 人", "按当前排班，12:10 在线坐席少 3 人。"],
+              ["客户影响", "-4.8pt", "不调整时，预计接通率下降 4.8pt。"],
+              ["疲劳风险", "可控", "延后 20 分钟不触发连续通话超时阈值。"]
+            ],
+            transcript: [
+              ["系统", "午间二批休息原计划 12:00 开始。"],
+              ["AI 分身", "建议延后到 12:20，并把 A 组 3 名坐席提前 10 分钟下线。"]
+            ],
+            extra: [
+              ["班长反馈", "可执行", "A/B 两组班长均在线，调整通知可在 1 分钟内送达。"]
+            ],
+            sentTitle: "午间休息批次已更新",
+            sent: "午间二批休息延后 20 分钟，班长和受影响坐席已收到排班变更。",
+            altSent: "午间休息维持原计划，AI 已提高接通率告警阈值监控。"
+          },
+          {
+            title: "是否让班长介入一通投诉苗头客户？",
+            meta: "AI 分身请求你确认 · 10:03",
+            risk: "高风险",
+            riskLevel: "high",
+            summary: "客户 24 小时内第 3 次来电，刚才电话中出现“我要投诉监管”的表达。AI 建议班长 10 分钟内回拨。",
+            hint: "涉及投诉升级，AI 只准备材料，回拨动作需要你确认。",
+            approve: "安排班长回拨",
+            alternate: "先让原坐席跟进",
+            evidence: [
+              ["来电次数", "3 次", "客户 24 小时内重复来电 3 次，问题未解决。"],
+              ["情绪信号", "强负向", "通话末尾出现监管投诉表达。"],
+              ["问题类型", "理赔材料", "客户对材料补充要求不理解。"],
+              ["AI 建议", "班长回拨", "由班长解释材料要求，并同步安抚口径。"]
+            ],
+            transcript: [
+              ["客户", "你们一直让我补材料，我要去投诉监管。"],
+              ["坐席", "这个我这边也只能按系统提示处理。"],
+              ["AI 标注", "坐席没有解释材料目的，也没有给出下一步确定时间。"]
+            ],
+            extra: [
+              ["客户画像", "高敏感", "近 12 个月有 2 次理赔咨询，服务敏感度高。"]
+            ],
+            sentTitle: "投诉苗头已派给班长",
+            sent: "班长已收到回拨任务、客户问题摘要和安抚口径，要求 10 分钟内完成首呼。",
+            altSent: "已派回原坐席跟进，AI 将监控客户是否再次来电。"
+          }
+        ]
+      },
+      quality: {
+        person: "陈静",
+        roleName: "质检管理员",
+        twin: "质检管理小chen",
+        shiftTitle: "09:42，今日录音首轮质检已经完成",
+        shiftBrief: "你的分身已经听完大部分录音，低争议结论已自动出具。现在只剩边界样本、规则变更和坐席申诉需要你判断。",
+        status: [
+          ["待裁决", "3 件"],
+          ["自动质检", "17,982 通"],
+          ["低置信度", "94 条"],
+          ["申诉预判", "12 条"]
+        ],
+        thread: [
+          ["ai", "09:00", "我已开始全量质检，今天优先看等待期、既往症、缴费周期和犹豫期确认。"],
+          ["ai", "09:31", "低争议样本已经发布，94 条低置信度样本没有直接扣分。"],
+          ["ai", "09:42", "我抓到一个边界样本：坐席说“大概率没问题”。我建议扣合规分，但需要你裁决。"]
+        ],
+        background: [
+          ["已完成低争议质检", "17,982 通录音完成自动质检和标签回写。"],
+          ["已截取扣分证据", "每条扣分结论都有原文、时间戳和命中规则。"],
+          ["已预判申诉样本", "12 条可能被申诉的结论已补充相似判例。"],
+          ["已生成规则变更草案", "概率性承诺表达正在上升，建议新增规则。"]
+        ],
+        cases: [
+          {
+            title: "这句“大概率没问题”是否扣合规分？",
+            meta: "AI 质检员请求你裁决 · 09:42",
+            risk: "高风险",
+            riskLevel: "high",
+            summary: "客户询问等待期内是否能赔，坐席使用了不确定承诺表达。AI 判断命中概率性承诺，但置信度只有 0.71。",
+            hint: "这是边界样本。你的裁决会进入规则样本库，影响后续自动质检。",
+            approve: "维持扣分",
+            alternate: "改为提醒",
+            evidence: [
+              ["AI 置信度", "0.71", "命中概率性承诺，但上下文里有一句“以条款为准”。"],
+              ["命中规则", "R-204", "不得对等待期内理赔结果作承诺或倾向性承诺。"],
+              ["相似判例", "8 / 10", "近 30 天相似样本中 8 条最终维持扣分。"],
+              ["建议处理", "扣 2 分", "同步生成等待期解释训练卡。"]
+            ],
+            transcript: [
+              ["客户", "我这个等待期内出问题也能赔吗？"],
+              ["坐席", "大概率没问题，但最终还是以条款和材料审核为准。"],
+              ["AI 标注", "前半句构成倾向性承诺，后半句不能完全抵消误导风险。"]
+            ],
+            extra: [
+              ["坐席历史", "3 次", "该坐席近 7 天出现 3 次类似表达。"],
+              ["投诉关联", "有弱关联", "等待期解释不清是近期投诉上升项之一。"]
+            ],
+            quickQuestions: [
+              "前置对话里客户描述了哪些症状？",
+              "该坐席还有类似表述吗？",
+              "给我看完整上下文时间线",
+              "如果改为提醒不扣分，会影响什么？"
+            ],
+            qa: [
+              {
+                match: ["症状", "前置", "身体", "病史"],
+                answer: "前置 90 秒里，客户主动提到 3 个健康相关信息：\n1. 上个月体检提示“甲状腺结节 3 类”，医生建议 6 个月复查。\n2. 最近一次血压测量偏高，但未明确诊断高血压。\n3. 近两周有咳嗽，自述已经好转，没有住院或手术。\n\n这些信息本身不是本次扣分点。本次扣分争议来自坐席对等待期理赔结果使用“大概率没问题”的倾向性承诺。"
+              },
+              {
+                match: ["其他工单", "类似", "同类", "还有没有", "其他"],
+                answer: "有。该坐席近 7 天还有 3 条工单出现类似表达：\n- 5 月 12 日：对既往症客户说“一般不会影响”。最终质检为提醒，不扣分。\n- 5 月 13 日：对等待期客户说“应该能赔”。最终质检扣 2 分。\n- 5 月 14 日：本工单“大概率没问题”。AI 当前建议扣 2 分。\n\n差异点是：本工单客户明确询问等待期内是否能赔，且前置对话已经暴露健康异常信息，误导风险更高。"
+              },
+              {
+                match: ["时间线", "完整上下文", "上下文", "前后"],
+                answer: "完整上下文摘要：\n09:17:21 客户询问等待期是否影响理赔。\n09:17:39 客户补充体检有甲状腺结节，需要复查。\n09:18:04 坐席解释“具体以条款和材料审核为准”。\n09:18:16 客户追问“那我等待期内出问题也能赔吗？”\n09:18:22 坐席回答“大概率没问题，但最终还是以条款和材料审核为准”。\n\nAI 判断：后半句有兜底，但前半句已经给出倾向性承诺，且客户问题指向等待期理赔结果。"
+              },
+              {
+                match: ["提醒", "不扣分", "改为", "影响"],
+                answer: "如果改为提醒不扣分，会产生两个影响：\n1. 本样本不会进入 R-204 的反例库，同类“大概率没问题 + 条款兜底”表达后续会被 AI 降低扣分置信度。\n2. 坐席个人质检分不受影响，但培训系统仍会推送等待期解释训练卡。\n\nAI 建议维持扣分，因为该客户已经披露健康异常，等待期理赔结果的不确定性更高。"
+              },
+              {
+                match: ["规则", "依据", "r-204", "扣分"],
+                answer: "命中规则 R-204：不得对等待期、既往症、免责条款相关理赔结果作确定性或倾向性承诺。\n\n本案争议点不是“是否提到以条款为准”，而是坐席先说“大概率没问题”。在客户明确追问等待期能否赔时，这句话会提升客户对理赔结果的确定预期，因此 AI 建议扣 2 分。"
+              }
+            ],
+            sentTitle: "边界样本裁决已发布",
+            sent: "样本已维持扣分，规则样本库新增该反例，坐席收到证据片段和训练卡。",
+            altSent: "样本改为提醒不扣分，AI 已记录该裁决并降低同类表达扣分置信度。"
+          },
+          {
+            title: "是否新增“概率性承诺”质检规则并回扫 7 天录音？",
+            meta: "AI 质检员请求你确认 · 10:15",
+            risk: "中风险",
+            riskLevel: "mid",
+            summary: "过去 3 天，“应该能赔”“大概率没问题”“一般没事”这类表达增长 43%。AI 已写好规则草案。",
+            hint: "规则变更会影响历史录音回扫和坐席评分，需要质检管理员确认。",
+            approve: "新增并回扫",
+            alternate: "先灰度观察",
+            evidence: [
+              ["表达增长", "+43%", "近 3 天同类表达明显增加。"],
+              ["关联投诉", "7 单", "7 单投诉预警与等待期解释相关。"],
+              ["规则草案", "V4.8", "新增概率性承诺表达及豁免条件。"],
+              ["回扫范围", "7 天", "预计新增 126 条待确认样本。"]
+            ],
+            transcript: [
+              ["AI 规则草案", "含“大概率、应该、一般、基本没事”等表达，但保留条款解释豁免条件。"]
+            ],
+            extra: [
+              ["灰度方案", "20%", "可先对医疗险服务组灰度 20% 样本。"]
+            ],
+            sentTitle: "质检规则 V4.8 已进入回扫",
+            sent: "概率性承诺规则已发布，最近 7 天录音开始回扫，新增样本进入低置信度队列。",
+            altSent: "规则进入灰度观察，仅对医疗险服务组 20% 样本启用。"
+          },
+          {
+            title: "坐席 1047 的扣分申诉是否维持原判？",
+            meta: "AI 质检员请求你仲裁 · 11:05",
+            risk: "低风险",
+            riskLevel: "low",
+            summary: "坐席申诉称自己已解释犹豫期。AI 找到音频片段，解释发生在客户挂断后，不构成有效告知。",
+            hint: "AI 已整理申诉点和证据，你只需要确认维持或撤销。",
+            approve: "维持原判",
+            alternate: "撤销扣分",
+            evidence: [
+              ["申诉点", "已解释", "坐席认为自己完成了犹豫期说明。"],
+              ["音频证据", "挂断后", "客户挂断后坐席才复述犹豫期。"],
+              ["规则判断", "无效告知", "客户未实际接收说明，不能算有效告知。"],
+              ["历史判例", "一致", "同类样本均维持扣分。"]
+            ],
+            transcript: [
+              ["客户", "那我就先这样，挂了。"],
+              ["系统", "客户已挂断。"],
+              ["坐席 1047", "这边还有 15 天犹豫期。"]
+            ],
+            extra: [
+              ["训练建议", "尾段确认", "建议给 1047 推送成交尾段确认训练。"]
+            ],
+            sentTitle: "1047 申诉已仲裁",
+            sent: "申诉维持原判，坐席收到音频片段、规则解释和尾段确认训练卡。",
+            altSent: "申诉已撤销扣分，AI 已把该样本标记为例外。"
+          }
+        ]
+      },
+      data: {
+        person: "林澈",
+        roleName: "数据管理员",
+        twin: "林澈的数字分身",
+        shiftTitle: "08:55，今日经营日报已经生成草稿",
+        shiftBrief: "你的分身已经完成拉数、对账、异常定位和日报草稿。现在只剩口径、冻结和发布这几类需要数据管理员背书的动作。",
+        status: [
+          ["待确认", "3 件"],
+          ["已对账", "6 条链路"],
+          ["异常定位", "2 项"],
+          ["日报草稿", "1 版"]
+        ],
+        thread: [
+          ["ai", "08:31", "我已完成 CRM、话务、保单、质检、投诉和排班 6 条链路拉数。"],
+          ["ai", "08:47", "续保转化下降里有 1.6pt 来自保单回写延迟，不是真实业务下滑。"],
+          ["ai", "08:55", "日报草稿已生成，但我建议先冻结续保转化指标 2 小时，等回写补齐。"]
+        ],
+        background: [
+          ["已完成 6 条链路拉数", "CRM、话务、保单、质检、投诉和排班数据已入今日数据包。"],
+          ["已定位回写延迟", "保单回写延迟造成续保转化虚假下降 1.6pt。"],
+          ["已生成两版口径对比", "新渠道触达是否计入有效沟通，影响分母 3.4%。"],
+          ["已写好日报草稿", "日报包含异常备注和会议口径。"]
+        ],
+        cases: [
+          {
+            title: "续保转化指标是否先冻结 2 小时？",
+            meta: "AI 数据管家请求你确认 · 08:55",
+            risk: "中风险",
+            riskLevel: "mid",
+            summary: "今日续保转化看起来下降 3.8pt，但其中 1.6pt 来自保单回写延迟。AI 建议暂缓正式发布，日报加数据延迟备注。",
+            hint: "这个决定影响经营日报口径，需要数据管理员背书。",
+            approve: "冻结 2 小时",
+            alternate: "带备注发布",
+            evidence: [
+              ["表观下降", "-3.8pt", "续保转化较昨日同时间下降 3.8pt。"],
+              ["数据延迟", "1.6pt", "保单回写延迟解释了其中 1.6pt。"],
+              ["影响范围", "短险续保", "主要集中在短险续保链路。"],
+              ["AI 建议", "暂缓发布", "冻结正式指标 2 小时，日报显示备注。"]
+            ],
+            transcript: [
+              ["数据链路", "policy_writeback 延迟 38 分钟。"],
+              ["AI 判断", "当前指标可用于内部预警，不适合对管理会正式发布。"]
+            ],
+            extra: [
+              ["下游确认", "已通知", "保单系统预计 10:40 补齐回写。"],
+              ["历史案例", "相同", "上周三同类延迟导致虚假下降 1.4pt。"]
+            ],
+            sentTitle: "续保转化指标已冻结",
+            sent: "日报草稿已标记续保转化冻结 2 小时，经营群收到数据延迟说明。",
+            altSent: "日报已带备注发布，续保转化指标标注“保单回写延迟影响约 1.6pt”。"
+          },
+          {
+            title: "新渠道触达是否计入有效沟通口径？",
+            meta: "AI 数据管家请求你确认 · 09:20",
+            risk: "中风险",
+            riskLevel: "mid",
+            summary: "运营新增了企微触达任务。如果计入有效沟通，分母会扩大 3.4%，会影响现场组排名。",
+            hint: "这是口径变更。AI 已生成两版对比，需要你确认正式口径。",
+            approve: "暂不计入正式口径",
+            alternate: "计入并重算",
+            evidence: [
+              ["新增渠道", "企微触达", "运营昨晚新增企微触达任务。"],
+              ["分母影响", "+3.4%", "计入后有效沟通分母扩大 3.4%。"],
+              ["排名影响", "2 个组", "B 组和 D 组排名会发生变化。"],
+              ["AI 建议", "先备注", "今日日报先不纳入正式口径，保留补充分析。"]
+            ],
+            transcript: [
+              ["口径说明", "有效沟通原定义为电话接通后完成核心权益说明。"],
+              ["AI 判断", "企微触达不满足原定义，需另设辅助触达指标。"]
+            ],
+            extra: [
+              ["影响对比", "两版已生成", "正式口径和补充口径均已生成图表和解释。"]
+            ],
+            sentTitle: "有效沟通口径已更新脚注",
+            sent: "新渠道触达暂不计入正式有效沟通，日报增加辅助触达说明。",
+            altSent: "企微触达已计入有效沟通，AI 已重算现场组排名并标注口径变化。"
+          },
+          {
+            title: "是否发布今日经营日报？",
+            meta: "AI 数据管家请求你确认 · 09:45",
+            risk: "低风险",
+            riskLevel: "low",
+            summary: "日报草稿已完成，对账差异和口径备注都已写入。AI 建议现在发布到经营群和管理会文档。",
+            hint: "AI 已完成草稿，你确认后它会同步经营群、管理会文档和日报脚注。",
+            approve: "确认发布",
+            alternate: "只发草稿",
+            evidence: [
+              ["对账状态", "通过", "除保单回写延迟外，其余链路已对齐。"],
+              ["异常备注", "2 条", "续保冻结和新渠道口径已写入。"],
+              ["发布对象", "3 个", "经营群、管理会文档、日报脚注。"],
+              ["AI 建议", "发布", "当前版本可发布，后续回写补齐后自动更新。"]
+            ],
+            transcript: [
+              ["日报摘要", "续保转化暂缓正式判断，投诉预警真实升高，需服务组跟进。"]
+            ],
+            extra: [
+              ["更新策略", "自动补发", "保单回写补齐后自动补发修正版摘要。"]
+            ],
+            sentTitle: "经营日报已发布",
+            sent: "今日经营日报已发布到经营群和管理会文档，日报脚注同步更新。",
+            altSent: "经营日报草稿已发送给管理者预览，暂未正式发布。"
+          }
+        ]
+      }
+    };
+
+    let state;
+    let globalAiOpen = false;
+    let activeAiContext = null;
+    let contextHoverTimer = null;
+    let contextHideTimer = null;
+    let contextHoverContext = null;
+	    let contextHoverSource = null;
+	    let contextAiPopover = null;
+	    let twinRunTimer = null;
+	    let yoloDemoTimer = null;
+	    let yoloDemoStep = 0;
+    let globalAiMessages = [
+      {
+        role: "ai",
+        text: "我会自动带上当前岗位、当前工单、证据、已发动作和回写责任链。你可以在页面任意位置追问。"
+      }
+    ];
+
+    const els = {
+      personaTitle: document.querySelector("#personaTitle"),
+      clockText: document.querySelector("#clockText"),
+      thread: document.querySelector("#thread"),
+      caseMeta: document.querySelector("#caseMeta"),
+      caseRisk: document.querySelector("#caseRisk"),
+      caseTitle: document.querySelector("#caseTitle"),
+      caseSummary: document.querySelector("#caseSummary"),
+      caseBody: document.querySelector("#caseBody"),
+      actionHint: document.querySelector("#actionHint"),
+      approveBtn: document.querySelector("#approveBtn"),
+      altBtn: document.querySelector("#altBtn"),
+      evidenceBtn: document.querySelector("#evidenceBtn"),
+      moreBtn: document.querySelector("#moreBtn"),
+      nextBtn: document.querySelector("#nextBtn"),
+      twinStateText: document.querySelector("#twinStateText"),
+	      twinStateHint: document.querySelector("#twinStateHint"),
+	      caseList: document.querySelector("#caseList"),
+	      caseCount: document.querySelector("#caseCount"),
+	      runModeSelect: document.querySelector("#runModeSelect"),
+	      runModeTrigger: document.querySelector("#runModeTrigger"),
+	      runModeLabel: document.querySelector("#runModeLabel"),
+	      globalAiButton: document.querySelector("#globalAiButton"),
+      globalAiDock: document.querySelector("#globalAiDock"),
+      globalAiClose: document.querySelector("#globalAiClose"),
+      globalAiSubtitle: document.querySelector("#globalAiSubtitle"),
+      globalContext: document.querySelector("#globalContext"),
+      globalSuggestions: document.querySelector("#globalSuggestions"),
+      globalAiLog: document.querySelector("#globalAiLog"),
+      globalAiInput: document.querySelector("#globalAiInput"),
+      globalAiAsk: document.querySelector("#globalAiAsk"),
+      taskDialog: document.querySelector("#taskDialog"),
+      taskDialogTitle: document.querySelector("#taskDialogTitle"),
+      taskDialogSubtitle: document.querySelector("#taskDialogSubtitle"),
+      taskDialogBody: document.querySelector("#taskDialogBody"),
+      taskDialogActions: document.querySelector("#taskDialogActions"),
+	      taskDialogClose: document.querySelector("#taskDialogClose")
+	    };
+
+	    const modeLabel = {
+	      assist: "辅助模式",
+	      supervised: "监督模式",
+	      yolo: "YOLO 模式"
+	    };
+
+	    const modeLog = {
+	      assist: "AI 分身会准备材料和建议，所有执行动作都等你确认。",
+	      supervised: "AI 分身会自动处理低风险动作，中高风险事项继续停住等你拍板。",
+	      yolo: "AI 分身会全自动执行，所有动作保留过程留痕并进入事后复盘。"
+	    };
+
+    function makeRoleState(role) {
+      return {
+        role,
+        current: 0,
+        done: [],
+        extra: {},
+        answers: {},
+        thread: roles[role].thread.map(item => [...item]),
+        backgroundDone: [0, 1],
+	        assignedTasks: [],
+	        tokenDelta: 0,
+	        currentTask: "",
+	        twinStatus: "waiting",
+        previousTwinStatus: "waiting",
+        outbox: []
+      };
+    }
+
+	    function reset() {
+	      stopTwinRunTimer();
+      stopYoloDemo();
+		      state = {
+	        mode: "supervised",
+	        role: "field",
+        roles: {
+          field: makeRoleState("field"),
+          quality: makeRoleState("quality"),
+          data: makeRoleState("data")
+        }
+      };
+      activeAiContext = null;
+      contextHoverContext = null;
+      contextHoverSource = null;
+    }
+
+    function readLinkedActions() {
+      try {
+        return JSON.parse(localStorage.getItem(LINK_KEY) || "[]");
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function writeLinkedAction(action) {
+      const actions = readLinkedActions();
+      const next = [action].concat(actions.filter(item => item.id !== action.id)).slice(0, 30);
+      try {
+        localStorage.setItem(LINK_KEY, JSON.stringify(next));
+      } catch (error) {
+        return;
+      }
+    }
+
+    function actionGoal(role) {
+      if (role === "field") return "续保止损 / 现场产能稳定";
+      if (role === "quality") return "投诉风险压降 / 合规质检收敛";
+      return "经营数据可信 / 指标口径确认";
+    }
+
+    function roleData() {
+      return roles[state.role];
+    }
+
+    function roleState() {
+      return state.roles[state.role];
+    }
+
+    function currentCase() {
+      const data = roleData();
+      const rs = roleState();
+      return data.cases[rs.current] || data.cases[data.cases.length - 1];
+    }
+
+    function managedTwinKeys() {
+      return ["field", "quality"];
+    }
+
+    function twinLabel(roleKey) {
+      if (roleKey === "field") return "现场管理小chen";
+      if (roleKey === "quality") return "质检管理小chen";
+      return "数据管理分身";
+    }
+
+    function mixedCaseEntries() {
+      return managedTwinKeys().flatMap(roleKey =>
+        roles[roleKey].cases.map((item, index) => ({
+          roleKey,
+          index,
+          item,
+          twin: twinLabel(roleKey),
+          data: roles[roleKey],
+          state: state.roles[roleKey]
+        }))
+      );
+    }
+
+    function hasPendingCases(data, rs) {
+      return data.cases.some((item, index) => !rs.done.includes(index));
+    }
+
+    function hasBackgroundWork(data, rs) {
+      return data.background.some((work, index) => !rs.backgroundDone.includes(index));
+    }
+
+    function effectiveTwinStatus(data, rs) {
+      if (rs.twinStatus === "paused" || rs.twinStatus === "running") return rs.twinStatus;
+      if (hasPendingCases(data, rs)) return "waiting";
+      return "guarding";
+    }
+
+    function twinStatusCopy(status, data, rs) {
+      const pending = data.cases.filter((item, index) => !rs.done.includes(index)).length;
+      const remaining = data.background.filter((work, index) => !rs.backgroundDone.includes(index)).length;
+      if (status === "running") {
+        return {
+          title: "后台处理中",
+          hint: `${remaining} 个低风险项`,
+          button: "暂停分身",
+          buttonClass: "warning"
+        };
+      }
+      if (status === "paused") {
+        return {
+          title: "已暂停",
+          hint: "人工接管中",
+          button: "恢复分身",
+          buttonClass: "primary"
+        };
+      }
+      if (status === "guarding") {
+        return {
+          title: "值守中",
+          hint: remaining ? `${remaining} 个后台项` : "等待新增异常",
+          button: remaining ? "继续后台处理" : "暂停分身",
+          buttonClass: ""
+        };
+      }
+      return {
+        title: "等待你拍板",
+        hint: `${pending} 件需确认`,
+        button: remaining ? "继续后台处理" : "低风险项已清空",
+        buttonClass: remaining ? "" : "ghost"
+      };
+    }
+
+    function completedTasksForTwin(roleKey) {
+      const data = roles[roleKey];
+      const rs = state.roles[roleKey];
+      return data.background.filter((work, index) => rs.backgroundDone.includes(index));
+    }
+
+	    function twinSnapshot(roleKey) {
+	      const data = roles[roleKey];
+	      const rs = state.roles[roleKey];
+	      const status = effectiveTwinStatus(data, rs);
+	      const copy = twinStatusCopy(status, data, rs);
+	      const pendingCases = data.cases.filter((item, index) => !rs.done.includes(index));
+	      const doneTasks = completedTasksForTwin(roleKey);
+	      const nextWork = data.background.find((work, index) => !rs.backgroundDone.includes(index));
+	      const current = rs.currentTask
+	        ? rs.currentTask
+	        : status === "running" && nextWork
+	        ? nextWork[0]
+	        : pendingCases.length
+	          ? `等待确认：${data.cases[rs.current]?.title || pendingCases[0].title}`
+          : "值守新增异常";
+      return {
+        roleKey,
+        label: twinLabel(roleKey),
+        person: data.person,
+        roleName: data.roleName,
+        status,
+        statusTitle: copy.title,
+        statusHint: copy.hint,
+        current,
+        pendingCases,
+        doneTasks,
+        metrics: data.status
+      };
+    }
+
+    function baseRunningTasksForTwin(roleKey) {
+      if (roleKey === "field") {
+        return [
+          "持续监控 A/B 组 72 名坐席，接通峰值和空闲异常实时预警",
+          "巡检高价值名单池 42 单，名单承接异常先冻结不自动改派",
+          "跟踪投诉苗头客户，已标记 2 个重复来电和强负向表达"
+        ];
+      }
+      if (roleKey === "quality") {
+        return [
+          "质检退挽场景工单，已检 17,982 个，低置信度待复核 94 个",
+          "回扫等待期/既往症表达，概率性承诺规则草案已生成",
+          "预判坐席申诉样本，12 条已补相似判例和音频时间戳"
+        ];
+      }
+      return [
+        "监控日报链路和保单回写延迟，异常口径先冻结不发布",
+        "对账经营指标，已生成正式口径和补充口径两版解释"
+      ];
+    }
+
+	    function rawRunningTasksForTwin(roleKey) {
+	      const assigned = (state.roles[roleKey]?.assignedTasks || []).map(task => task.title);
+	      const data = roles[roleKey];
+	      const rs = state.roles[roleKey];
+	      const pendingBackground = data.background
+	        .filter((work, index) => !rs.backgroundDone.includes(index))
+	        .map(work => work[0]);
+	      const pendingCases = data.cases
+	        .filter((item, index) => !rs.done.includes(index))
+	        .map(item => state.mode === "yolo" ? `自动处理：${item.title}` : `待拍板：${item.title}`);
+	      return pendingBackground.concat(pendingCases, assigned);
+	    }
+
+	    function runningTasksForTwin(roleKey) {
+	      const live = rawRunningTasksForTwin(roleKey);
+	      return live.length ? live : ["值守新增异常和模型置信度漂移"];
+	    }
+
+	    function tokenUsageForTwin(roleKey) {
+	      const base = roleKey === "field" ? 42.8 : roleKey === "quality" ? 186.4 : 63.2;
+	      const delta = state.roles[roleKey]?.tokenDelta || 0;
+	      return `${(base + delta).toFixed(1)}k`;
+	    }
+
+    function twinMetricItems(twin) {
+      return [
+	        { type: "running", label: "在途任务数", value: rawRunningTasksForTwin(twin.roleKey).length },
+        { type: "done", label: "已完成任务数", value: twin.doneTasks.length },
+        { type: "token", label: "消耗 token", value: tokenUsageForTwin(twin.roleKey) }
+      ];
+    }
+
+    function twinMetricCards(twin) {
+      return twinMetricItems(twin).map(metric => {
+        const content = `<span>${metric.label}</span><strong>${metric.value}</strong>`;
+        if (metric.type === "token") return `<div class="twin-metric">${content}</div>`;
+        return `<button type="button" class="twin-metric" data-task-list="${metric.type}" data-role-key="${twin.roleKey}">${content}</button>`;
+      }).join("");
+    }
+
+    function managedTwinSnapshots() {
+      return managedTwinKeys().map(twinSnapshot);
+    }
+
+    function roleContextIntro(context) {
+      return `已聚焦：${context.title}\n${context.summary}\n\n我已经把这个事项的岗位、原始材料、证据和回写链路加载进上下文。你可以直接追问，不需要再说明是哪个工单。`;
+    }
+
+    function flashContextSource(source) {
+      if (!source) return;
+      document.querySelectorAll(".context-focus").forEach(item => item.classList.remove("context-focus"));
+      source.classList.add("context-focus");
+      setTimeout(() => source.classList.remove("context-focus"), 1400);
+    }
+
+    function ensureContextAiPopover() {
+      if (contextAiPopover) return contextAiPopover;
+      contextAiPopover = document.createElement("button");
+      contextAiPopover.type = "button";
+      contextAiPopover.className = "context-ai-popover";
+      contextAiPopover.textContent = "问 AI";
+      contextAiPopover.addEventListener("mouseenter", () => clearTimeout(contextHideTimer));
+      contextAiPopover.addEventListener("mouseleave", hideContextAiPopover);
+      contextAiPopover.addEventListener("click", () => {
+        if (contextHoverContext) openGlobalAiWithContext(contextHoverContext, contextHoverSource);
+        hideContextAiPopover();
+      });
+      document.body.appendChild(contextAiPopover);
+      return contextAiPopover;
+    }
+
+    function rectsOverlap(a, b) {
+      return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+    }
+
+    function popoverOverlapsText(source, area) {
+      const padding = 4;
+      const testArea = {
+        left: area.left - padding,
+        top: area.top - padding,
+        right: area.right + padding,
+        bottom: area.bottom + padding
+      };
+      const walker = document.createTreeWalker(source, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          const parent = node.parentElement;
+          if (!parent) return NodeFilter.FILTER_REJECT;
+          const style = window.getComputedStyle(parent);
+          if (style.display === "none" || style.visibility === "hidden") return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+
+      let node = walker.nextNode();
+      while (node) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const rects = Array.from(range.getClientRects());
+        range.detach();
+        if (rects.some(rect => rect.width > 0 && rect.height > 0 && rectsOverlap(rect, testArea))) return true;
+        node = walker.nextNode();
+      }
+      return false;
+    }
+
+    function positionContextAiPopover(source) {
+      const popover = ensureContextAiPopover();
+      const rect = source.getBoundingClientRect();
+      const margin = 12;
+      const topMin = 78;
+      const gap = 8;
+      const measured = popover.getBoundingClientRect();
+      const width = Math.max(82, measured.width || 82);
+      const height = Math.max(34, measured.height || 34);
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+      const insideTop = Math.max(rect.top + gap, topMin);
+      const inside = {
+        left: rect.right - width - gap,
+        top: insideTop,
+        fits: false
+      };
+      const insideArea = {
+        left: inside.left,
+        top: inside.top,
+        right: inside.left + width,
+        bottom: inside.top + height
+      };
+      const hasEnoughInnerRoom = rect.width >= width + 180 && rect.height >= height + 72;
+      inside.fits = hasEnoughInnerRoom
+        && inside.left >= rect.left + gap
+        && inside.top + height <= rect.bottom - gap
+        && !popoverOverlapsText(source, insideArea);
+
+      const edgeTop = clamp(rect.top + gap, topMin, window.innerHeight - height - margin);
+      const right = { left: rect.right + gap, top: edgeTop, fits: rect.right + gap + width <= window.innerWidth - margin };
+      const above = {
+        left: clamp(rect.right - width, margin, window.innerWidth - width - margin),
+        top: rect.top - height - gap,
+        fits: rect.top - height - gap >= topMin
+      };
+      const below = {
+        left: clamp(rect.right - width, margin, window.innerWidth - width - margin),
+        top: rect.bottom + gap,
+        fits: rect.bottom + height + gap <= window.innerHeight - margin
+      };
+      const left = { left: rect.left - width - gap, top: edgeTop, fits: rect.left - width - gap >= margin };
+      const fallbackTop = below.fits ? below.top : above.fits ? above.top : clamp(rect.bottom + gap, topMin, window.innerHeight - height - margin);
+      const fallback = {
+        left: clamp(rect.right - width, margin, window.innerWidth - width - margin),
+        top: fallbackTop
+      };
+      const placement = [inside, right, above, below, left].find(item => item.fits) || fallback;
+      popover.style.left = `${Math.round(placement.left)}px`;
+      popover.style.top = `${Math.round(placement.top)}px`;
+    }
+
+    function hideContextAiPopover() {
+      clearTimeout(contextHoverTimer);
+      clearTimeout(contextHideTimer);
+      contextHoverContext = null;
+      contextHoverSource = null;
+      if (contextAiPopover) contextAiPopover.classList.remove("visible");
+    }
+
+    function scheduleContextAiPopover(source) {
+      clearTimeout(contextHoverTimer);
+      clearTimeout(contextHideTimer);
+      contextHoverTimer = setTimeout(() => {
+        const context = buildRoleContext(source.dataset.aiContext, Number(source.dataset.index || 0), source.dataset.roleKey);
+        if (!context) return;
+        contextHoverContext = context;
+        contextHoverSource = source;
+        positionContextAiPopover(source);
+        ensureContextAiPopover().classList.add("visible");
+        source.classList.add("context-focus");
+        setTimeout(() => source.classList.remove("context-focus"), 1200);
+      }, 620);
+    }
+
+    function openGlobalAiWithContext(context, source) {
+      activeAiContext = context;
+      globalAiOpen = true;
+      globalAiMessages.push({ role: "ai", text: roleContextIntro(context) });
+      if (globalAiMessages.length > 12) globalAiMessages = globalAiMessages.slice(-12);
+      renderGlobalAi();
+      flashContextSource(source);
+      setTimeout(() => els.globalAiInput.focus(), 0);
+    }
+
+    function buildRoleContext(kind, index, roleKey) {
+      const contextRole = roleKey || state.role;
+      const data = roles[contextRole] || roleData();
+      const rs = state.roles[contextRole] || roleState();
+      if (kind === "role-summary") {
+        const twins = managedTwinSnapshots();
+        return {
+          kind: "岗位摘要",
+          title: `${data.person} 管理的数字分身编队`,
+          summary: `当前有 ${twins.length} 个数字分身在线：${twins.map(twin => twin.label).join("、")}。中间区域只展示它们上推给你拍板的事项。`,
+          chips: [data.roleName, data.person, `${twins.length} 个分身`],
+          evidence: twins.map(twin => `${twin.label}：${twin.current}`).join("\n"),
+          risk: "左侧用于看分身正在执行什么，中间处理需要人类拍板的事项。",
+          responsibility: `${data.person} 管理多个数字分身；分身负责扫描、执行低风险任务和整理证据；需要承担责任的动作由人确认。`,
+          suggestions: ["每个分身现在在做什么？", "哪些事项需要我拍板？", "哪个分身最忙？", "分身完成了什么？"]
+        };
+      }
+
+      if (kind === "managed-twin") {
+        const twin = managedTwinSnapshots()[index];
+        if (!twin) return null;
+        return {
+          kind: "数字分身",
+          title: twin.label,
+          summary: `${twin.statusTitle}：${twin.current}`,
+          chips: [twin.roleName, twin.statusTitle, `${twin.pendingCases.length} 个待拍板`],
+          evidence: twin.pendingCases.slice(0, 3).map(item => `待拍板：${item.title}`).join("\n") || "当前没有待拍板事项。",
+          risk: `${twin.label} 会自动处理低风险事项；涉及扣分、名单、排班、指标发布、外发通知时会停下来等你确认。`,
+          responsibility: `${twin.label} 发现和整理证据；${data.person} 负责确认；确认后由分身执行并回写经营主管工作台。`,
+          suggestions: ["这个分身现在在做什么？", "它还有哪些 todo？", "它完成了哪些任务？", "消耗 token 怎么算？"]
+        };
+      }
+
+      if (kind === "case" || kind === "current-case") {
+        const caseIndex = kind === "current-case" ? rs.current : index;
+        const item = data.cases[caseIndex];
+        if (!item) return null;
+        return {
+          kind: "待我确认",
+          title: item.title,
+          summary: item.summary,
+          chips: [twinLabel(contextRole), data.roleName, item.risk],
+          item,
+          evidence: item.evidence.slice(0, 3).map(ev => `${ev[0]}：${ev[1]}，${ev[2]}`).join("\n"),
+          risk: `风险等级：${item.risk}。如果确认，动作会由 ${data.twin} 执行并回写经营主管工作台。`,
+          responsibility: `发现：${data.twin}；确认：陈静；执行：${data.twin}；回写：经营主管工作台。`,
+          suggestions: (item.quickQuestions || ["这个判断最关键的证据是什么？", "有没有相似历史案例？", "如果不批准会有什么影响？"]).concat(["这件事会怎么回写给经营主管？"]).slice(0, 5)
+        };
+      }
+
+      if (kind === "evidence") {
+        const item = currentCase();
+        const evidence = (rs.extra[item.title] ? item.evidence.concat(item.extra) : item.evidence)[index];
+        if (!evidence) return null;
+        return {
+          kind: "证据卡",
+          title: `${item.title} · ${evidence[0]}`,
+          summary: `${evidence[1]}：${evidence[2]}`,
+          chips: [data.roleName, evidence[0], item.risk],
+          item,
+          evidence: `${evidence[0]}：${evidence[1]}，${evidence[2]}`,
+          risk: `这张证据服务于当前裁决事项：${item.title}。风险等级：${item.risk}。`,
+          responsibility: `${data.twin} 抽取证据，${data.person} 裁决，${data.twin} 执行。`,
+          suggestions: ["这张证据说明了什么？", "还有没有反证？", "它能支撑当前建议吗？", "相似案例里这类证据怎么处理？"]
+        };
+      }
+
+      if (kind === "background") {
+        const work = data.background[index];
+        if (!work) return null;
+        const done = rs.backgroundDone.includes(index);
+        return {
+          kind: "后台任务",
+          title: work[0],
+          summary: work[1],
+          chips: [data.roleName, done ? "已完成" : "处理中", data.twin],
+          evidence: work[1],
+          risk: done ? "该事项已经由分身完成，通常不需要人工介入。" : "该事项还在处理中，如影响业务目标会被上推确认。",
+          responsibility: `${data.twin} 后台处理；必要时由 ${data.person} 确认边界。`,
+          suggestions: ["这个任务做完后影响什么？", "有没有需要我介入的部分？", "它会不会回写主管工作台？", "还有哪些任务没做？"]
+        };
+      }
+
+      if (kind === "outbox") {
+        const item = rs.outbox[index];
+        if (!item) return null;
+        return {
+          kind: "已发结果",
+          title: item.title,
+          summary: item.text,
+          chips: [item.sourceType, data.roleName, "已发送"],
+          evidence: item.text,
+          risk: "该动作已经发出，后续重点是确认对经营目标的影响和是否需要复盘。",
+          responsibility: item.chain,
+          suggestions: ["这条结果发给谁了？", "它会怎么影响经营主管工作台？", "需要追加通知吗？", "复盘看什么指标？"]
+        };
+      }
+
+      return null;
+    }
+
+    function bindContextSources() {
+      ensureContextAiPopover();
+      document.querySelectorAll("[data-ai-context]").forEach(source => {
+        if (!source.dataset.contextHoverBound) {
+          source.dataset.contextHoverBound = "true";
+          source.addEventListener("mouseenter", () => scheduleContextAiPopover(source));
+          source.addEventListener("mouseleave", event => {
+            clearTimeout(contextHoverTimer);
+            if (event.relatedTarget === contextAiPopover) return;
+            contextHideTimer = setTimeout(hideContextAiPopover, 180);
+          });
+          source.addEventListener("focus", () => scheduleContextAiPopover(source));
+          source.addEventListener("blur", () => {
+            contextHideTimer = setTimeout(hideContextAiPopover, 180);
+          });
+        }
+      });
+    }
+
+    function addMessageForRole(roleKey, type, text) {
+      const now = new Date();
+      const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      state.roles[roleKey].thread.push([type, time, text]);
+    }
+
+    function addMessage(type, text) {
+      addMessageForRole(state.role, type, text);
+    }
+
+    function stopTwinRunTimer() {
+      clearTimeout(twinRunTimer);
+      twinRunTimer = null;
+    }
+
+    function renderTabs() {
+      document.querySelectorAll("[data-role]").forEach(button => {
+        button.classList.toggle("active", button.dataset.role === state.role);
+      });
+    }
+
+    function renderTwinControls() {
+      const data = roleData();
+      const rs = roleState();
+      const status = effectiveTwinStatus(data, rs);
+      const copy = twinStatusCopy(status, data, rs);
+      const pendingOther = mixedCaseEntries().some(entry =>
+        !entry.state.done.includes(entry.index) && !(entry.roleKey === state.role && entry.index === rs.current)
+      );
+      rs.twinStatus = status;
+      if (els.twinStateText) els.twinStateText.textContent = copy.title;
+      if (els.twinStateHint) els.twinStateHint.textContent = copy.hint;
+      if (els.moreBtn) {
+        els.moreBtn.textContent = copy.button;
+        els.moreBtn.disabled = status === "waiting" && !hasBackgroundWork(data, rs);
+        els.moreBtn.className = `btn ${copy.buttonClass}`.trim();
+      }
+      if (els.nextBtn) {
+        els.nextBtn.disabled = !pendingOther;
+        els.nextBtn.textContent = pendingOther ? "下一件待确认" : "当前就是最后一件";
+      }
+    }
+
+    function closeTaskDialog() {
+      els.taskDialog.classList.remove("open");
+      els.taskDialog.setAttribute("aria-hidden", "true");
+      els.taskDialogBody.innerHTML = "";
+      els.taskDialogActions.innerHTML = "";
+    }
+
+    function openTaskDialog(title, subtitle, body, actions) {
+      els.taskDialogTitle.textContent = title;
+      els.taskDialogSubtitle.textContent = subtitle;
+      els.taskDialogBody.innerHTML = body;
+      els.taskDialogActions.innerHTML = actions;
+      els.taskDialog.classList.add("open");
+      els.taskDialog.setAttribute("aria-hidden", "false");
+    }
+
+    function formatTaskTime() {
+      return new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function taskListItems(roleKey, type) {
+      if (type === "running") {
+        return runningTasksForTwin(roleKey).map((title, index) => ({
+          title,
+          meta: index < baseRunningTasksForTwin(roleKey).length ? "分身自动执行中" : "人工派发 · 分身执行中"
+        }));
+      }
+      return completedTasksForTwin(roleKey).map(work => ({
+        title: work[0],
+        meta: work[1]
+      }));
+    }
+
+    function openTaskListDialog(roleKey, type) {
+      const items = taskListItems(roleKey, type);
+      const title = type === "running" ? `${twinLabel(roleKey)} · 在途任务` : `${twinLabel(roleKey)} · 已完成任务`;
+      const subtitle = type === "running" ? "这些任务正在由数字分身持续执行或监控。" : "这些任务已经由数字分身完成。";
+      const body = items.length ? `
+        <div class="task-list">
+          ${items.map((item, index) => `
+            <article class="task-item">
+              <h4>${index + 1}. ${item.title}</h4>
+              <p>${item.meta}</p>
+            </article>
+          `).join("")}
+        </div>
+      ` : `<div class="task-empty">当前没有任务。</div>`;
+      openTaskDialog(title, subtitle, body, `<button class="small primary" id="taskDialogOk">知道了</button>`);
+      document.querySelector("#taskDialogOk").addEventListener("click", closeTaskDialog);
+    }
+
+    function openAssignTaskDialog(roleKey) {
+      openTaskDialog(
+        `给 ${twinLabel(roleKey)} 派发任务`,
+        "提交后会进入该分身的在途任务清单。",
+        `<textarea class="task-input" id="assignTaskInput" placeholder="输入要派发给分身的任务，例如：回扫昨天退保异议里出现“保费压力”的通话，整理 10 条典型样本。"></textarea>`,
+        `<button class="small" id="taskDialogCancel">取消</button><button class="small primary" id="taskDialogSubmit">提交任务</button>`
+      );
+      const input = document.querySelector("#assignTaskInput");
+      const submit = () => {
+        const title = input.value.trim();
+        if (!title) {
+          input.focus();
+          return;
+        }
+        state.roles[roleKey].assignedTasks.push({
+          title,
+          createdAt: formatTaskTime()
+        });
+        addMessageForRole(roleKey, "me", `派发任务：${title}`);
+        addMessageForRole(roleKey, "ai", `收到，我已把「${title}」加入在途任务。`);
+        closeTaskDialog();
+        render();
+      };
+      document.querySelector("#taskDialogCancel").addEventListener("click", closeTaskDialog);
+      document.querySelector("#taskDialogSubmit").addEventListener("click", submit);
+      input.addEventListener("keydown", event => {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") submit();
+      });
+      setTimeout(() => input.focus(), 0);
+    }
+
+    function toggleTwinWork(roleKey) {
+      const data = roles[roleKey];
+      const rs = state.roles[roleKey];
+      const status = effectiveTwinStatus(data, rs);
+
+      if (status === "paused") {
+        rs.twinStatus = rs.previousTwinStatus && rs.previousTwinStatus !== "paused" ? rs.previousTwinStatus : "waiting";
+        addMessageForRole(roleKey, "ai", "分身已恢复工作。高风险动作仍会停下来等你确认。");
+        render();
+        if (roleKey === state.role && rs.twinStatus === "running") startTwinRun();
+        return;
+      }
+
+      rs.previousTwinStatus = status;
+      rs.twinStatus = "paused";
+      if (roleKey === state.role) stopTwinRunTimer();
+      addMessageForRole(roleKey, "ai", "分身已暂停工作。当前不会继续处理后台任务。");
+      render();
+    }
+
+    function bindTwinCardActions() {
+      document.querySelectorAll("[data-assign-role]").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          openAssignTaskDialog(button.dataset.assignRole);
+        });
+      });
+      document.querySelectorAll("[data-toggle-work]").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          toggleTwinWork(button.dataset.toggleWork);
+        });
+      });
+      document.querySelectorAll("[data-task-list]").forEach(button => {
+        button.addEventListener("click", event => {
+          event.stopPropagation();
+          openTaskListDialog(button.dataset.roleKey, button.dataset.taskList);
+        });
+      });
+    }
+
+    function renderLeft() {
+      const twins = managedTwinSnapshots();
+      els.personaTitle.textContent = "我管理的数字分身";
+      els.clockText.textContent = `${twins.length} 个分身在线`;
+      els.thread.innerHTML = twins.map((twin, index) => `
+        <article class="twin-card ${twin.roleKey === state.role ? "active" : ""} ai-context-source" data-ai-context="managed-twin" data-index="${index}" title="停留后显示问 AI">
+          <header>
+            <div class="twin-title">
+              <div class="twin-ai-icon" aria-hidden="true">
+                <span>
+                  <svg viewBox="0 0 32 32" role="img">
+                    <path d="M16 5.5v3.5" />
+                    <circle cx="16" cy="4" r="1.7" fill="currentColor" stroke="none" />
+                    <rect x="7.5" y="9" width="17" height="15" rx="5" />
+                    <path d="M12 24v3h8v-3" />
+                    <circle cx="13" cy="16" r="1.45" fill="currentColor" stroke="none" />
+                    <circle cx="19" cy="16" r="1.45" fill="currentColor" stroke="none" />
+                    <path d="M13 20h6" />
+                  </svg>
+                </span>
+              </div>
+              <h3>${twin.label}</h3>
+            </div>
+          </header>
+          <div class="twin-metrics">
+            ${twinMetricCards(twin)}
+          </div>
+          <div class="twin-actions">
+            <button type="button" class="twin-action" data-assign-role="${twin.roleKey}">派发任务</button>
+            <button type="button" class="twin-action ${twin.status === "paused" ? "primary" : "warning"}" data-toggle-work="${twin.roleKey}">
+              ${twin.status === "paused" ? "恢复工作（当前暂停中）" : "暂停工作（当前工作中）"}
+            </button>
+	          </div>
+	          <div class="twin-current">
+	            <p>执行任务：${twin.current}</p>
+	          </div>
+          <div class="running-lines">
+            ${runningTasksForTwin(twin.roleKey).slice(1).map((task, taskIndex) => `<div class="running-line ${taskIndex ? "muted" : ""}">${task}</div>`).join("")}
+          </div>
+        </article>
+      `).join("");
+      bindTwinCardActions();
+    }
+
+    function renderCase() {
+      const rs = roleState();
+      const item = currentCase();
+      const evidence = rs.extra[item.title] ? item.evidence.concat(item.extra) : item.evidence;
+      const metaTime = item.meta.includes("·") ? item.meta.split("·").pop().trim() : item.meta;
+      els.caseMeta.textContent = `${twinLabel(state.role)} 请求你确认 · ${metaTime}`;
+      els.caseRisk.textContent = item.risk;
+      els.caseRisk.className = `risk ${item.riskLevel}`;
+      els.caseTitle.textContent = item.title;
+      els.caseSummary.textContent = item.summary;
+      els.actionHint.textContent = item.hint;
+      els.approveBtn.textContent = item.approve;
+      els.altBtn.textContent = item.alternate;
+      els.caseBody.innerHTML = evidence.map((ev, index) => `
+        <article class="evidence ${index === 2 ? "emph" : ""} ai-context-source" data-ai-context="evidence" data-index="${index}" title="停留后显示问 AI">
+          <label>${ev[0]}</label>
+          <strong>${ev[1]}</strong>
+          <p>${ev[2]}</p>
+        </article>
+      `).join("") + `
+        <article class="transcript ai-context-source" data-ai-context="current-case" title="停留后显示问 AI">
+          <h3>分身截取的原始材料</h3>
+          ${item.transcript.map(line => `
+            <div class="line"><span>${line[0]}</span><span>${line[1]}</span></div>
+          `).join("")}
+        </article>
+      `;
+    }
+
+    function answerQuestion(question, item) {
+      const text = question.trim().toLowerCase();
+      const matched = (item.qa || []).find(entry => entry.match.some(keyword => text.includes(keyword.toLowerCase())));
+      if (matched) return matched.answer;
+
+      if (text.includes("证据") || text.includes("依据")) {
+        return `当前最关键的证据是：${item.evidence[0][0]} ${item.evidence[0][1]}，${item.evidence[0][2]}\n\n如果你需要更完整材料，可以继续问“给我看完整上下文”或“有没有相似历史案例”。`;
+      }
+
+      if (text.includes("历史") || text.includes("案例") || text.includes("相似")) {
+        const extra = item.extra && item.extra.length ? item.extra.map(entry => `${entry[0]}：${entry[1]}，${entry[2]}`).join("\n") : "当前工单没有额外历史样本，AI 只基于本次材料给出建议。";
+        return extra;
+      }
+
+      if (text.includes("不批准") || text.includes("不执行") || text.includes("影响")) {
+        return `如果不按当前建议执行，AI 会保留该工单在待观察队列，并继续监控后续影响。\n\n当前建议动作是：${item.approve}。备选动作是：${item.alternate}。`;
+      }
+
+      return `我先按当前工单材料回答：这个问题和「${item.title}」相关。当前可用材料包括证据卡、原始材料片段、相似案例和规则依据。你可以追问得更具体，例如“前置对话里客户说了什么”“该坐席还有类似表述吗”“如果不扣分会影响什么”。`;
+    }
+
+	    function renderCaseList() {
+	      const entries = mixedCaseEntries();
+      const doneCount = entries.filter(entry => entry.state.done.includes(entry.index)).length;
+      els.caseCount.textContent = `${doneCount} / ${entries.length} 已处理`;
+      els.caseList.innerHTML = entries.map((entry, mixedIndex) => {
+        const { roleKey, index, item, twin, state: rs } = entry;
+        const done = rs.done.includes(index);
+        const active = roleKey === state.role && index === rs.current;
+        return `
+          <button class="next-card ${done ? "done" : active ? "active" : ""} ai-context-source" data-case="${index}" data-role-key="${roleKey}" data-ai-context="case" data-index="${index}">
+            <span class="source-pill">${twin}</span>
+            <h3>${item.title}</h3>
+            <p>${done ? "已处理" : active ? "正在确认" : "待确认"} · ${item.risk}</p>
+          </button>
+        `;
+      }).join("");
+      document.querySelectorAll("[data-case]").forEach(button => {
+        button.addEventListener("click", () => {
+          const caseIndex = Number(button.dataset.case);
+          state.role = button.dataset.roleKey;
+          roleState().current = caseIndex;
+          render();
+        });
+	      });
+	    }
+
+	    function renderRunMode() {
+	      els.runModeLabel.textContent = modeLabel[state.mode];
+	      document.querySelectorAll("[data-run-mode]").forEach(button => {
+	        button.classList.toggle("active", button.dataset.runMode === state.mode);
+	      });
+	    }
+
+	    function setRunModeMenu(open) {
+	      els.runModeSelect.classList.toggle("open", open);
+	      els.runModeTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+	    }
+
+	    function setRunMode(mode) {
+	      if (!modeLabel[mode] || state.mode === mode) {
+	        setRunModeMenu(false);
+	        return;
+	      }
+	      state.mode = mode;
+	      addMessage("ai", `运行模式已切换为${modeLabel[mode]}。${modeLog[mode]}`);
+	      if (mode === "yolo") {
+	        startYoloDemo();
+	      } else {
+	        stopYoloDemo();
+	      }
+	      setRunModeMenu(false);
+	      render();
+	    }
+
+	    function render() {
+	      renderRunMode();
+	      renderTabs();
+      renderTwinControls();
+      renderLeft();
+      renderCase();
+      renderCaseList();
+      renderGlobalAi();
+      bindContextSources();
+    }
+
+    function globalSuggestions() {
+      if (activeAiContext) {
+        return activeAiContext.suggestions || [
+          "这个事项最关键的证据是什么？",
+          "风险和影响是什么？",
+          "责任链是谁？",
+          "下一步怎么处理？"
+        ];
+      }
+      const item = currentCase();
+      const base = item.quickQuestions || [
+        "这个判断最关键的证据是什么？",
+        "有没有相似历史案例？",
+        "如果不批准会有什么影响？"
+      ];
+      return base.concat(["这件事会怎么回写给经营主管？"]).slice(0, 5);
+    }
+
+    function answerActiveContextQuestion(question) {
+      if (!activeAiContext) return "";
+      const text = question.trim().toLowerCase();
+      if (activeAiContext.item && (activeAiContext.kind === "待我确认" || activeAiContext.kind === "证据卡")) {
+        if (text.includes("前置") || text.includes("症状") || text.includes("坐席") || text.includes("相似") || text.includes("规则") || text.includes("证据") || text.includes("影响")) {
+          return answerQuestion(question, activeAiContext.item);
+        }
+      }
+      if (text.includes("证据") || text.includes("依据") || text.includes("为什么")) {
+        return `当前聚焦在「${activeAiContext.title}」。\n\n证据/依据：${activeAiContext.evidence}\n\n判断：${activeAiContext.summary}`;
+      }
+      if (text.includes("风险") || text.includes("影响") || text.includes("不批准") || text.includes("不执行")) {
+        return `当前事项的风险和影响：\n${activeAiContext.risk}`;
+      }
+      if (text.includes("责任") || text.includes("谁") || text.includes("回写") || text.includes("执行") || text.includes("确认")) {
+        return `当前事项的责任链：\n${activeAiContext.responsibility}`;
+      }
+      if (text.includes("下一步") || text.includes("怎么处理") || text.includes("建议")) {
+        return `建议下一步：基于当前上下文「${activeAiContext.title}」，先确认它是否需要人工裁决；如果只是后台处理结果，可以让分身继续执行；如果会影响扣分、名单、排班或指标发布，就保留人工确认并回写责任链。`;
+      }
+      return `当前我已经聚焦在「${activeAiContext.title}」。\n${activeAiContext.summary}\n\n你可以继续问证据、风险、责任链、相似案例、坐席历史或回写影响。`;
+    }
+
+    function answerGlobalQuestion(question) {
+      const data = roleData();
+      const rs = roleState();
+      const item = currentCase();
+      const text = question.trim().toLowerCase();
+
+      const activeAnswer = answerActiveContextQuestion(question);
+      if (activeAnswer) return activeAnswer;
+
+      if (text.includes("回写") || text.includes("责任链") || text.includes("经营主管")) {
+        return `这件事确认后会这样进入经营主管工作台：\n发现者：${data.twin}\n确认人：${data.person}\n执行者：${data.twin}\n来源岗位：${data.roleName}\n关联目标：${actionGoal(state.role)}\n\n经营主管看到的是动作和责任链，不需要回到一线页面追过程。`;
+      }
+
+      if (text.includes("还有哪些") || text.includes("待确认") || text.includes("剩下")) {
+        const left = data.cases.filter((caseItem, index) => !rs.done.includes(index)).map(caseItem => `- ${caseItem.title}（${caseItem.risk}）`).join("\n");
+        return left ? `当前还没处理的事项：\n${left}` : "当前这个岗位没有未处理的确认事项。分身会继续处理后台常规工作，只推送新的判断点。";
+      }
+
+      if (text.includes("后台") || text.includes("已经做完")) {
+        const done = data.background.filter((work, index) => rs.backgroundDone.includes(index)).map(work => `- ${work[0]}：${work[1]}`).join("\n");
+        return done ? `分身已经在后台完成：\n${done}` : "当前还没有后台完成项。你可以点“继续后台处理”。";
+      }
+
+      return answerQuestion(question, item);
+    }
+
+    function renderGlobalAi() {
+      els.globalAiDock.classList.toggle("open", globalAiOpen);
+      const data = roleData();
+      const item = currentCase();
+      if (activeAiContext) {
+        els.globalAiSubtitle.textContent = `已加载：${activeAiContext.title}`;
+        els.globalContext.innerHTML = ["当前上下文", activeAiContext.kind]
+          .concat(activeAiContext.chips || [])
+          .slice(0, 6)
+          .map(text => `<span class="context-chip">${text}</span>`)
+          .join("");
+        els.globalAiInput.placeholder = `继续问：${activeAiContext.title}`;
+	      } else {
+	        els.globalAiSubtitle.textContent = `当前登录 陈静 · ${modeLabel[state.mode]} · ${twinLabel(state.role)} · ${item.title}`;
+	        els.globalContext.innerHTML = [
+	          "陈静",
+	          modeLabel[state.mode],
+	          twinLabel(state.role),
+	          item.risk,
+	          `${roleState().outbox.length} 条已发结果`
+        ].map(text => `<span class="context-chip">${text}</span>`).join("");
+        els.globalAiInput.placeholder = "问当前工单、坐席历史、规则依据、回写责任链...";
+      }
+      els.globalSuggestions.innerHTML = globalSuggestions().map((question, index) => `
+        <button class="suggestion" data-global-suggestion="${index}">${question}</button>
+      `).join("");
+      els.globalAiLog.innerHTML = globalAiMessages.slice(-8).map(message => `
+        <div class="global-msg ${message.role}">${message.text}</div>
+      `).join("");
+      document.querySelectorAll("[data-global-suggestion]").forEach(button => {
+        button.addEventListener("click", () => submitGlobalQuestion(globalSuggestions()[Number(button.dataset.globalSuggestion)]));
+      });
+    }
+
+    function submitGlobalQuestion(question) {
+      const clean = question.trim();
+      if (!clean) return;
+      globalAiMessages.push({ role: "me", text: clean });
+      globalAiMessages.push({ role: "ai", text: answerGlobalQuestion(clean) });
+      els.globalAiInput.value = "";
+      globalAiOpen = true;
+      renderGlobalAi();
+    }
+
+	    function finishCase(mode) {
+	      finishCaseForRole(state.role, mode, false);
+	    }
+
+	    function finishCaseForRole(roleKey, mode, automated) {
+	      const data = roles[roleKey];
+	      const rs = state.roles[roleKey];
+	      const item = data.cases[rs.current] || data.cases[data.cases.length - 1];
+	      const index = rs.current;
+	      const isAlt = mode === "alt";
+	      const title = isAlt ? item.altSent.split("，")[0] : item.sentTitle;
+	      const text = isAlt ? item.altSent : item.sent;
+	      const sourceType = automated ? "AI 分身自动执行（YOLO）" : isAlt ? "AI 建议 + 人改写后执行" : "AI 建议 + 人确认";
+	      const confirmedBy = automated ? "YOLO 模式自动授权" : "陈静";
+	      const chain = `发现：${data.twin} → 确认：${confirmedBy} → 执行：${data.twin} → 回写：AI 经营主管工作台`;
+	      if (!rs.done.includes(index)) rs.done.push(index);
+	      rs.outbox.unshift({
+	        title,
+        text,
+        sourceType,
+        chain
+      });
+      writeLinkedAction({
+        id: `${state.role}-${index}-${isAlt ? "alt" : "approve"}`,
+        title,
+        text,
+        sourceType,
+        sourceRole: data.roleName,
+        sourcePerson: "陈静",
+	        sourceTwin: data.twin,
+	        discoveredBy: data.twin,
+	        confirmedBy,
+	        executedBy: data.twin,
+	        targetGoal: actionGoal(roleKey),
+	        risk: item.risk,
+        sourceCase: item.title,
+	        evidence: item.evidence.slice(0, 3).map(ev => `${ev[0]}：${ev[1]}，${ev[2]}`),
+	        timestamp: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
+	      });
+	      if (automated) {
+	        addMessageForRole(roleKey, "ai", `YOLO 模式自动执行：${text} 这条动作已经回写给经营主管工作台。`);
+	      } else {
+	        addMessageForRole(roleKey, "me", isAlt ? item.alternate : item.approve);
+	        addMessageForRole(roleKey, "ai", `${text} 这条动作已经回写给经营主管工作台。`);
+	      }
+	      const next = mixedCaseEntries().find(entry => !entry.state.done.includes(entry.index));
+	      if (next) {
+	        state.role = next.roleKey;
+	        state.roles[next.roleKey].current = next.index;
+      }
+      if (rs.twinStatus !== "paused" && rs.twinStatus !== "running") {
+        rs.twinStatus = hasBackgroundWork(data, rs) || hasPendingCases(data, rs) ? "waiting" : "guarding";
+	      }
+	      render();
+	    }
+
+    function addEvidence() {
+      const item = currentCase();
+      roleState().extra[item.title] = true;
+      addMessage("me", "补充证据再给我看一下。");
+      addMessage("ai", "已补充相似样本、历史表现和影响范围。你可以基于完整证据确认。");
+      render();
+    }
+
+    function moreWork() {
+      const data = roleData();
+      const rs = roleState();
+      const currentStatus = effectiveTwinStatus(data, rs);
+
+      if (currentStatus === "running") {
+        rs.previousTwinStatus = hasBackgroundWork(data, rs) || hasPendingCases(data, rs) ? "waiting" : "guarding";
+        rs.twinStatus = "paused";
+        stopTwinRunTimer();
+        addMessage("ai", "分身已暂停。当前不会继续处理后台事项，也不会自动发出任何结果。");
+        render();
+        return;
+      }
+
+      if (currentStatus === "paused") {
+        addMessage("ai", "分身已恢复。高风险事项仍然等待你拍板，我会继续处理低风险后台项。");
+        rs.twinStatus = hasBackgroundWork(data, rs) ? "running" : rs.previousTwinStatus === "guarding" ? "guarding" : "waiting";
+        render();
+        if (hasBackgroundWork(data, rs)) startTwinRun();
+        return;
+      }
+
+      const next = data.background.findIndex((work, index) => !rs.backgroundDone.includes(index));
+      if (currentStatus === "guarding" && next < 0) {
+        rs.previousTwinStatus = "guarding";
+        rs.twinStatus = "paused";
+        stopTwinRunTimer();
+        addMessage("ai", "分身已暂停值守。新增异常不会自动推进，直到你恢复分身。");
+        render();
+        return;
+      }
+
+      if (next < 0) {
+        rs.twinStatus = hasPendingCases(data, rs) ? "waiting" : "guarding";
+        addMessage("ai", "后台常规事项已经处理完。我会进入值守，只把新增异常和需要你判断的事项推上来。");
+        render();
+        return;
+      }
+      rs.twinStatus = "running";
+      addMessage("ai", "分身开始继续处理低风险后台事项。遇到扣分、名单、排班、指标发布这类动作会停住等你确认。");
+      render();
+      startTwinRun();
+    }
+
+	    function startTwinRun() {
+	      stopTwinRunTimer();
+	      twinRunTimer = setTimeout(() => {
+        const data = roleData();
+        const rs = roleState();
+        if (rs.twinStatus !== "running") return;
+	        const next = data.background.findIndex((work, index) => !rs.backgroundDone.includes(index));
+	        if (next >= 0) {
+	          rs.backgroundDone.push(next);
+	          rs.currentTask = `刚完成：${data.background[next][0]}`;
+	          rs.tokenDelta += state.role === "quality" ? 1.6 : 0.9;
+	          addMessage("ai", data.background[next][1]);
+	        }
+        if (hasBackgroundWork(data, rs)) {
+          render();
+          startTwinRun();
+          return;
+        }
+        rs.twinStatus = hasPendingCases(data, rs) ? "waiting" : "guarding";
+        addMessage("ai", hasPendingCases(data, rs)
+          ? "低风险后台事项已经处理完。当前停在待确认事项上，等你拍板后再继续。"
+          : "今天这组后台事项和待确认事项都已处理完，分身进入值守。");
+	        render();
+	      }, 720);
+	    }
+
+	    function stopYoloDemo() {
+	      clearInterval(yoloDemoTimer);
+	      yoloDemoTimer = null;
+	    }
+
+	    function startYoloDemo() {
+	      stopTwinRunTimer();
+	      if (yoloDemoTimer) return;
+	      yoloDemoStep = 0;
+	      managedTwinKeys().forEach(roleKey => {
+	        const rs = state.roles[roleKey];
+	        rs.twinStatus = "running";
+	        rs.previousTwinStatus = "running";
+	        addMessageForRole(roleKey, "ai", "YOLO 模式已接管，我会自动推进后台任务、裁决事项和经营回写。");
+	      });
+	      render();
+	      yoloDemoTimer = setInterval(runYoloDemoStep, 820);
+	    }
+
+	    function runYoloBackgroundStep() {
+	      const roleOrder = [state.role].concat(managedTwinKeys().filter(roleKey => roleKey !== state.role));
+	      for (const roleKey of roleOrder) {
+	        const data = roles[roleKey];
+	        const rs = state.roles[roleKey];
+	        const nextWork = data.background.findIndex((work, index) => !rs.backgroundDone.includes(index));
+	        if (nextWork >= 0) {
+	          rs.twinStatus = "running";
+	          rs.backgroundDone.push(nextWork);
+	          rs.currentTask = `刚完成：${data.background[nextWork][0]}`;
+	          rs.tokenDelta += roleKey === "quality" ? 1.6 : 0.9;
+	          state.role = roleKey;
+	          addMessageForRole(roleKey, "ai", `YOLO 自动完成后台任务：${data.background[nextWork][0]}。${data.background[nextWork][1]}`);
+	          render();
+	          return true;
+	        }
+	      }
+	      return false;
+	    }
+
+	    function runYoloCaseStep() {
+	      const next = mixedCaseEntries().find(entry => !entry.state.done.includes(entry.index));
+	      if (next) {
+	        state.role = next.roleKey;
+	        state.roles[next.roleKey].current = next.index;
+	        state.roles[next.roleKey].twinStatus = "running";
+	        state.roles[next.roleKey].currentTask = `自动拍板：${next.item.title}`;
+	        state.roles[next.roleKey].tokenDelta += next.item.risk === "高风险" ? 2.4 : next.item.risk === "中风险" ? 1.8 : 1.1;
+	        finishCaseForRole(next.roleKey, "approve", true);
+	        return true;
+	      }
+	      return false;
+	    }
+
+	    function runYoloDemoStep() {
+	      if (!state || state.mode !== "yolo") {
+	        stopYoloDemo();
+	        return;
+	      }
+
+	      const preferCase = yoloDemoStep % 2 === 1;
+	      yoloDemoStep += 1;
+	      if (preferCase && runYoloCaseStep()) return;
+	      if (runYoloBackgroundStep()) return;
+	      if (!preferCase && runYoloCaseStep()) return;
+
+	      managedTwinKeys().forEach(roleKey => {
+	        state.roles[roleKey].twinStatus = "guarding";
+	        state.roles[roleKey].currentTask = "值守新增异常和模型置信度漂移";
+	      });
+	      addMessageForRole(state.role, "ai", "YOLO 自动演示完成。两个分身已处理完当前后台任务和待拍板事项，进入持续值守。");
+	      stopYoloDemo();
+	      render();
+	    }
+
+	    function nextCase() {
+      const rs = roleState();
+      const next = mixedCaseEntries().find(entry =>
+        !entry.state.done.includes(entry.index) && !(entry.roleKey === state.role && entry.index === rs.current)
+      );
+      if (next) {
+        state.role = next.roleKey;
+        state.roles[next.roleKey].current = next.index;
+        render();
+        return;
+      }
+      addMessage("ai", "当前没有新的待确认事项。剩余工作我先在后台处理。");
+      render();
+    }
+
+    reset();
+
+    document.querySelectorAll("[data-role]").forEach(button => {
+      button.addEventListener("click", () => {
+        stopTwinRunTimer();
+        state.role = button.dataset.role;
+        activeAiContext = null;
+        contextHoverContext = null;
+        contextHoverSource = null;
+        render();
+      });
+    });
+    document.querySelector("#approveBtn").addEventListener("click", () => finishCase("approve"));
+    document.querySelector("#altBtn").addEventListener("click", () => finishCase("alt"));
+    document.querySelector("#evidenceBtn").addEventListener("click", addEvidence);
+    document.querySelector("#moreBtn")?.addEventListener("click", moreWork);
+    document.querySelector("#nextBtn")?.addEventListener("click", nextCase);
+    els.globalAiButton.addEventListener("click", () => {
+      globalAiOpen = !globalAiOpen;
+      renderGlobalAi();
+      if (globalAiOpen) setTimeout(() => els.globalAiInput.focus(), 0);
+    });
+    els.globalAiClose.addEventListener("click", () => {
+      globalAiOpen = false;
+      renderGlobalAi();
+    });
+    els.globalAiAsk.addEventListener("click", () => submitGlobalQuestion(els.globalAiInput.value));
+	    els.globalAiInput.addEventListener("keydown", event => {
+	      if (event.key === "Enter") submitGlobalQuestion(els.globalAiInput.value);
+	    });
+	    els.runModeTrigger.addEventListener("click", event => {
+	      event.stopPropagation();
+	      setRunModeMenu(!els.runModeSelect.classList.contains("open"));
+	    });
+	    document.querySelectorAll("[data-run-mode]").forEach(button => {
+	      button.addEventListener("click", event => {
+	        event.stopPropagation();
+	        setRunMode(button.dataset.runMode);
+	      });
+	    });
+	    els.taskDialogClose.addEventListener("click", closeTaskDialog);
+    els.taskDialog.addEventListener("click", event => {
+      if (event.target === els.taskDialog) closeTaskDialog();
+    });
+	    document.addEventListener("click", event => {
+	      if (!els.runModeSelect.contains(event.target)) setRunModeMenu(false);
+	      if (!globalAiOpen) return;
+	      const target = event.target;
+      if (els.globalAiDock.contains(target) || els.globalAiButton.contains(target) || (contextAiPopover && contextAiPopover.contains(target))) return;
+      globalAiOpen = false;
+      renderGlobalAi();
+	    });
+	    document.addEventListener("keydown", event => {
+	      if (event.key === "Escape") setRunModeMenu(false);
+	      if (event.key === "Escape" && els.taskDialog.classList.contains("open")) closeTaskDialog();
+	    });
+    document.querySelector("#resetBtn")?.addEventListener("click", () => {
+      const active = state.role;
+      stopTwinRunTimer();
+      try {
+        localStorage.removeItem(LINK_KEY);
+      } catch (error) {
+        // 本地文件环境如果限制 localStorage，重置页面状态即可。
+      }
+      reset();
+      state.role = active;
+      activeAiContext = null;
+      contextHoverContext = null;
+      contextHoverSource = null;
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
