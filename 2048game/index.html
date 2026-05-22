@@ -218,17 +218,14 @@
       overflow: hidden;
       box-shadow: none;
       cursor: default;
-      transition: transform .28s cubic-bezier(.18, .72, .22, 1), opacity .22s ease;
-      backface-visibility: hidden;
+      left: 0;
+      top: 0;
+      transition: left .22s cubic-bezier(.18, .72, .22, 1), top .22s cubic-bezier(.18, .72, .22, 1), opacity .16s ease;
       contain: paint;
     }
 
     .tile.spawned {
       animation: spawn .28s ease-out;
-    }
-
-    .tile.merged {
-      animation: merge-flash .18s ease-out;
     }
 
     .tile[data-value="4"] { background: #ede0c8; }
@@ -317,18 +314,6 @@
       }
     }
 
-    @keyframes merge-flash {
-      0% {
-        filter: brightness(1);
-      }
-      50% {
-        filter: brightness(1.14);
-      }
-      100% {
-        filter: brightness(1);
-      }
-    }
-
     @media (max-width: 520px) {
       body {
         padding: 16px;
@@ -372,7 +357,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.2</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.3</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -611,8 +596,16 @@
       return { gap, cellSize, step: cellSize + gap };
     }
 
-    function tileTransform(row, col, layout) {
-      return `translate(${col * layout.step}px, ${row * layout.step}px)`;
+    function tilePosition(row, col, layout) {
+      return {
+        left: `${col * layout.step}px`,
+        top: `${row * layout.step}px`
+      };
+    }
+
+    function applyTilePosition(tile, position) {
+      tile.style.left = position.left;
+      tile.style.top = position.top;
     }
 
     function getTilePositions() {
@@ -635,7 +628,7 @@
       return tile;
     }
 
-    function render(previousPositions = null, mergedTileIds = null) {
+    function render(previousPositions = null) {
       const layout = getTileLayout();
       const movingTiles = [];
       tilesEl.replaceChildren();
@@ -644,19 +637,18 @@
           if (!value) return;
           const tile = createTile(value);
           const id = tileIds[r][c];
-          const finalTransform = tileTransform(r, c, layout);
+          const finalPosition = tilePosition(r, c, layout);
           tile.dataset.row = String(r);
           tile.dataset.col = String(c);
           tile.dataset.id = String(id);
-          if (mergedTileIds?.has(id)) tile.classList.add("merged");
           tilesEl.appendChild(tile);
 
           const previousPosition = previousPositions?.get(id);
           if (previousPosition && (previousPosition.row !== r || previousPosition.col !== c)) {
-            tile.style.transform = tileTransform(previousPosition.row, previousPosition.col, layout);
-            movingTiles.push({ tile, transform: finalTransform });
+            applyTilePosition(tile, tilePosition(previousPosition.row, previousPosition.col, layout));
+            movingTiles.push({ tile, position: finalPosition });
           } else {
-            tile.style.transform = finalTransform;
+            applyTilePosition(tile, finalPosition);
             if (spawnedCells.includes(`${r}-${c}`)) tile.classList.add("spawned");
           }
         });
@@ -664,16 +656,10 @@
 
       if (movingTiles.length) {
         requestAnimationFrame(() => {
-          movingTiles.forEach(({ tile, transform }) => {
-            tile.style.willChange = "transform";
-            tile.style.transform = transform;
+          movingTiles.forEach(({ tile, position }) => {
+            applyTilePosition(tile, position);
           });
         });
-        window.setTimeout(() => {
-          movingTiles.forEach(({ tile }) => {
-            tile.style.willChange = "";
-          });
-        }, 320);
       }
 
       scoreEl.textContent = score;
@@ -718,18 +704,12 @@
     function slideAndMergeCells(line) {
       const values = line.filter(Boolean);
       const merged = [];
-      const mergePairs = [];
       let gained = 0;
 
       for (let i = 0; i < values.length; i += 1) {
         if (values[i].value === values[i + 1]?.value) {
           const next = values[i].value * 2;
           merged.push({ value: next, id: values[i].id });
-          mergePairs.push({
-            survivorId: values[i].id,
-            consumedId: values[i + 1].id,
-            value: values[i + 1].value
-          });
           gained += next;
           i += 1;
         } else {
@@ -738,7 +718,7 @@
       }
 
       while (merged.length < size) merged.push(null);
-      return { line: merged, gained, mergePairs };
+      return { line: merged, gained };
     }
 
     function boardsEqual(a, b) {
@@ -754,14 +734,12 @@
       const previousPositions = getTilePositions();
       const beforeScore = score;
       let gained = 0;
-      const mergePairs = [];
       spawnedCells = [];
 
       for (let i = 0; i < size; i += 1) {
         const result = slideAndMergeCells(getLineCells(direction, i));
         setLineCells(direction, i, result.line);
         gained += result.gained;
-        mergePairs.push(...result.mergePairs);
       }
 
       if (boardsEqual(before, board)) return;
@@ -797,9 +775,7 @@
         showMessage("游戏结束", "没有可移动的格子了。", true);
       }
 
-      const mergedTileIds = new Set(mergePairs.map(({ survivorId }) => survivorId));
-
-      render(previousPositions, mergedTileIds);
+      render(previousPositions);
       saveState();
     }
 
