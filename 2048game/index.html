@@ -220,12 +220,7 @@
       cursor: default;
       left: 0;
       top: 0;
-      transition: left .22s cubic-bezier(.18, .72, .22, 1), top .22s cubic-bezier(.18, .72, .22, 1), opacity .16s ease;
       contain: paint;
-    }
-
-    .tile.spawned {
-      animation: spawn .28s ease-out;
     }
 
     .tile[data-value="4"] { background: #ede0c8; }
@@ -302,18 +297,6 @@
       line-height: 1.5;
     }
 
-    @keyframes spawn {
-      0% {
-        opacity: 0;
-      }
-      50% {
-        opacity: 1;
-      }
-      100% {
-        opacity: 1;
-      }
-    }
-
     @media (max-width: 520px) {
       body {
         padding: 16px;
@@ -357,7 +340,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.3</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.4</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -608,16 +591,6 @@
       tile.style.top = position.top;
     }
 
-    function getTilePositions() {
-      const positions = new Map();
-      tileIds.forEach((row, r) => {
-        row.forEach((id, c) => {
-          if (id !== null) positions.set(id, { row: r, col: c });
-        });
-      });
-      return positions;
-    }
-
     function createTile(value) {
       const tile = document.createElement("div");
       tile.className = "tile";
@@ -628,9 +601,8 @@
       return tile;
     }
 
-    function render(previousPositions = null) {
+    function render() {
       const layout = getTileLayout();
-      const movingTiles = [];
       tilesEl.replaceChildren();
       board.forEach((row, r) => {
         row.forEach((value, c) => {
@@ -642,25 +614,9 @@
           tile.dataset.col = String(c);
           tile.dataset.id = String(id);
           tilesEl.appendChild(tile);
-
-          const previousPosition = previousPositions?.get(id);
-          if (previousPosition && (previousPosition.row !== r || previousPosition.col !== c)) {
-            applyTilePosition(tile, tilePosition(previousPosition.row, previousPosition.col, layout));
-            movingTiles.push({ tile, position: finalPosition });
-          } else {
-            applyTilePosition(tile, finalPosition);
-            if (spawnedCells.includes(`${r}-${c}`)) tile.classList.add("spawned");
-          }
+          applyTilePosition(tile, finalPosition);
         });
       });
-
-      if (movingTiles.length) {
-        requestAnimationFrame(() => {
-          movingTiles.forEach(({ tile, position }) => {
-            applyTilePosition(tile, position);
-          });
-        });
-      }
 
       scoreEl.textContent = score;
       bestEl.textContent = best;
@@ -731,7 +687,6 @@
       const before = cloneBoard(board);
       const beforeIds = cloneIdBoard(tileIds);
       const beforeNextTileId = nextTileId;
-      const previousPositions = getTilePositions();
       const beforeScore = score;
       let gained = 0;
       spawnedCells = [];
@@ -775,7 +730,7 @@
         showMessage("游戏结束", "没有可移动的格子了。", true);
       }
 
-      render(previousPositions);
+      render();
       saveState();
     }
 
