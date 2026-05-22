@@ -26,8 +26,11 @@
 
     html,
     body {
+      height: 100%;
       min-height: 100%;
       margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
     }
 
     body {
@@ -39,7 +42,8 @@
         linear-gradient(135deg, rgba(38, 115, 107, .10), transparent 38%),
         linear-gradient(315deg, rgba(155, 63, 52, .10), transparent 34%),
         var(--page);
-      touch-action: manipulation;
+      touch-action: none;
+      overscroll-behavior: none;
     }
 
     main {
@@ -223,6 +227,11 @@
       contain: paint;
     }
 
+    .tile.sliding {
+      transition: transform .24s cubic-bezier(.18, .72, .22, 1);
+      will-change: transform;
+    }
+
     .tile[data-value="4"] { background: #ede0c8; }
     .tile[data-value="8"] { color: #fffaf4; background: #e49a52; }
     .tile[data-value="16"] { color: #fffaf4; background: #dc7346; }
@@ -340,7 +349,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.5</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.6</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -465,6 +474,16 @@
       localStorage.setItem(stateKey, JSON.stringify(state));
     }
 
+    function getTilePositions() {
+      const positions = new Map();
+      tileIds.forEach((row, r) => {
+        row.forEach((id, c) => {
+          if (id !== null) positions.set(id, { row: r, col: c });
+        });
+      });
+      return positions;
+    }
+
     function loadState() {
       try {
         const state = JSON.parse(localStorage.getItem(stateKey));
@@ -570,7 +589,17 @@
       return tile;
     }
 
-    function render() {
+    function getGridStep() {
+      const gap = Number.parseFloat(getComputedStyle(tilesEl).gap) || 0;
+      const width = tilesEl.clientWidth;
+      const cellSize = (width - gap * (size - 1)) / size;
+      return cellSize + gap;
+    }
+
+    function render(previousPositions = null) {
+      const step = previousPositions ? getGridStep() : 0;
+      const slidingTiles = [];
+
       tilesEl.replaceChildren();
       board.forEach((row, r) => {
         row.forEach((value, c) => {
@@ -586,8 +615,32 @@
           tile.dataset.col = String(c);
           tile.dataset.id = String(id);
           tilesEl.appendChild(tile);
+
+          const previousPosition = previousPositions?.get(id);
+          if (previousPosition && (previousPosition.row !== r || previousPosition.col !== c)) {
+            const dx = (previousPosition.col - c) * step;
+            const dy = (previousPosition.row - r) * step;
+            tile.style.transform = `translate(${dx}px, ${dy}px)`;
+            slidingTiles.push(tile);
+          }
         });
       });
+
+      if (slidingTiles.length) {
+        requestAnimationFrame(() => {
+          slidingTiles.forEach((tile) => {
+            tile.classList.add("sliding");
+            tile.style.transform = "translate(0, 0)";
+          });
+        });
+
+        window.setTimeout(() => {
+          slidingTiles.forEach((tile) => {
+            tile.classList.remove("sliding");
+            tile.style.transform = "";
+          });
+        }, 280);
+      }
 
       scoreEl.textContent = score;
       bestEl.textContent = best;
@@ -656,6 +709,7 @@
       const before = cloneBoard(board);
       const beforeIds = cloneIdBoard(tileIds);
       const beforeNextTileId = nextTileId;
+      const previousPositions = getTilePositions();
       const beforeScore = score;
       let gained = 0;
 
@@ -698,7 +752,7 @@
         showMessage("游戏结束", "没有可移动的格子了。", true);
       }
 
-      render();
+      render(previousPositions);
       saveState();
     }
 
@@ -908,9 +962,21 @@
       gameEl.setPointerCapture(event.pointerId);
     });
 
+    gameEl.addEventListener("pointermove", (event) => {
+      if (touchStart) event.preventDefault();
+    });
+
     gameEl.addEventListener("pointerup", (event) => {
       finishPointerInteraction(event, event.clientX, event.clientY);
     });
+
+    gameEl.addEventListener("pointercancel", () => {
+      touchStart = null;
+    });
+
+    gameEl.addEventListener("touchmove", (event) => {
+      event.preventDefault();
+    }, { passive: false });
 
     gameEl.addEventListener("dblclick", (event) => {
       const cell = getCellFromPoint(event.clientX, event.clientY);
