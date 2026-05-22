@@ -219,16 +219,16 @@
       box-shadow: none;
       cursor: default;
       transition: transform .28s cubic-bezier(.18, .72, .22, 1), opacity .22s ease;
-      will-change: transform, opacity;
-    }
-
-    .tile.ghost {
-      z-index: 3;
-      opacity: .85;
+      backface-visibility: hidden;
+      contain: paint;
     }
 
     .tile.spawned {
       animation: spawn .28s ease-out;
+    }
+
+    .tile.merged {
+      animation: merge-flash .18s ease-out;
     }
 
     .tile[data-value="4"] { background: #ede0c8; }
@@ -317,6 +317,18 @@
       }
     }
 
+    @keyframes merge-flash {
+      0% {
+        filter: brightness(1);
+      }
+      50% {
+        filter: brightness(1.14);
+      }
+      100% {
+        filter: brightness(1);
+      }
+    }
+
     @media (max-width: 520px) {
       body {
         padding: 16px;
@@ -360,7 +372,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.2</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -623,7 +635,7 @@
       return tile;
     }
 
-    function render(previousPositions = null, mergeGhosts = []) {
+    function render(previousPositions = null, mergedTileIds = null) {
       const layout = getTileLayout();
       const movingTiles = [];
       tilesEl.replaceChildren();
@@ -636,6 +648,7 @@
           tile.dataset.row = String(r);
           tile.dataset.col = String(c);
           tile.dataset.id = String(id);
+          if (mergedTileIds?.has(id)) tile.classList.add("merged");
           tilesEl.appendChild(tile);
 
           const previousPosition = previousPositions?.get(id);
@@ -649,25 +662,18 @@
         });
       });
 
-      mergeGhosts.forEach((ghost) => {
-        const tile = createTile(ghost.value);
-        tile.classList.add("ghost");
-        tile.style.transform = tileTransform(ghost.from.row, ghost.from.col, layout);
-        tilesEl.appendChild(tile);
-        movingTiles.push({
-          tile,
-          transform: tileTransform(ghost.to.row, ghost.to.col, layout),
-          fade: true
-        });
-      });
-
       if (movingTiles.length) {
         requestAnimationFrame(() => {
-          movingTiles.forEach(({ tile, transform, fade }) => {
+          movingTiles.forEach(({ tile, transform }) => {
+            tile.style.willChange = "transform";
             tile.style.transform = transform;
-            if (fade) tile.style.opacity = "0";
           });
         });
+        window.setTimeout(() => {
+          movingTiles.forEach(({ tile }) => {
+            tile.style.willChange = "";
+          });
+        }, 320);
       }
 
       scoreEl.textContent = score;
@@ -791,14 +797,9 @@
         showMessage("游戏结束", "没有可移动的格子了。", true);
       }
 
-      const finalPositions = getTilePositions();
-      const mergeGhosts = mergePairs.map(({ consumedId, survivorId, value }) => ({
-        value,
-        from: previousPositions.get(consumedId),
-        to: finalPositions.get(survivorId)
-      })).filter((ghost) => ghost.from && ghost.to);
+      const mergedTileIds = new Set(mergePairs.map(({ survivorId }) => survivorId));
 
-      render(previousPositions, mergeGhosts);
+      render(previousPositions, mergedTileIds);
       saveState();
     }
 
@@ -900,12 +901,22 @@
       return { row, col };
     }
 
+    function confirmRestartGame() {
+      return window.confirm("确定重新开始吗？当前棋盘进度会丢失。");
+    }
+
+    function restartGameWithConfirm() {
+      if (confirmRestartGame()) {
+        setupGame();
+      }
+    }
+
     function continueAfterWin() {
       if (!finished) {
         overlayOpen = false;
         overlayEl.classList.remove("show");
       } else {
-        setupGame();
+        restartGameWithConfirm();
       }
     }
 
@@ -1032,7 +1043,7 @@
     }
 
     undoButton.addEventListener("click", undo);
-    newGameButton.addEventListener("click", setupGame);
+    newGameButton.addEventListener("click", restartGameWithConfirm);
     overlayAction.addEventListener("click", continueAfterWin);
 
     if (loadState()) {
