@@ -180,7 +180,7 @@
     }
 
     .grid {
-      display: grid;
+      display: none;
       grid-template-columns: repeat(4, 1fr);
       grid-template-rows: repeat(4, 1fr);
       gap: var(--gap);
@@ -193,8 +193,10 @@
     }
 
     .tiles {
-      position: absolute;
-      inset: var(--gap);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      position: relative;
       aspect-ratio: 1 / 1;
       gap: var(--gap);
       pointer-events: none;
@@ -203,10 +205,10 @@
     .tile {
       display: grid;
       place-items: center;
-      position: absolute;
+      position: relative;
       min-width: 0;
-      width: var(--tile-size);
-      height: var(--tile-size);
+      width: 100%;
+      height: 100%;
       border-radius: 7px;
       padding: 0 4px;
       color: var(--tile-color, #766d64);
@@ -218,8 +220,6 @@
       overflow: hidden;
       box-shadow: none;
       cursor: default;
-      left: 0;
-      top: 0;
       contain: paint;
     }
 
@@ -340,7 +340,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.4</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.5</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -386,7 +386,6 @@
     const bestEl = document.querySelector("#best");
     const maxTileEl = document.querySelector("#max-tile");
     const tilesEl = document.querySelector("#tiles");
-    const gridEl = document.querySelector(".grid");
     const toastEl = document.querySelector("#toast");
     const overlayEl = document.querySelector("#overlay");
     const messageTitleEl = document.querySelector("#message-title");
@@ -408,14 +407,7 @@
     let finished = false;
     let overlayOpen = false;
     let skipSpawnOnce = false;
-    let spawnedCells = [];
     let toastTimer = null;
-
-    for (let i = 0; i < size * size; i += 1) {
-      const cell = document.createElement("div");
-      cell.className = "grid-cell";
-      gridEl.appendChild(cell);
-    }
 
     function cloneBoard(source) {
       return source.map((row) => [...row]);
@@ -505,7 +497,6 @@
         finished = Boolean(state.finished);
         overlayOpen = Boolean(state.overlayOpen);
         skipSpawnOnce = Boolean(state.skipSpawnOnce);
-        spawnedCells = [];
         return true;
       } catch {
         localStorage.removeItem(stateKey);
@@ -530,7 +521,6 @@
       board[r][c] = Math.random() < .9 ? 2 : 4;
       tileIds[r][c] = nextTileId;
       nextTileId += 1;
-      spawnedCells.push(`${r}-${c}`);
     }
 
     function applyTilePresentation(tile, value) {
@@ -564,31 +554,10 @@
       finished = false;
       overlayOpen = false;
       skipSpawnOnce = false;
-      spawnedCells = [];
       addRandomTile();
       addRandomTile();
       render();
       saveState();
-    }
-
-    function getTileLayout() {
-      const gap = Number.parseFloat(getComputedStyle(tilesEl).gap) || 0;
-      const width = tilesEl.clientWidth || gridEl.clientWidth;
-      const cellSize = (width - gap * (size - 1)) / size;
-      tilesEl.style.setProperty("--tile-size", `${cellSize}px`);
-      return { gap, cellSize, step: cellSize + gap };
-    }
-
-    function tilePosition(row, col, layout) {
-      return {
-        left: `${col * layout.step}px`,
-        top: `${row * layout.step}px`
-      };
-    }
-
-    function applyTilePosition(tile, position) {
-      tile.style.left = position.left;
-      tile.style.top = position.top;
     }
 
     function createTile(value) {
@@ -602,19 +571,21 @@
     }
 
     function render() {
-      const layout = getTileLayout();
       tilesEl.replaceChildren();
       board.forEach((row, r) => {
         row.forEach((value, c) => {
-          if (!value) return;
+          if (!value) {
+            const cell = document.createElement("div");
+            cell.className = "grid-cell";
+            tilesEl.appendChild(cell);
+            return;
+          }
           const tile = createTile(value);
           const id = tileIds[r][c];
-          const finalPosition = tilePosition(r, c, layout);
           tile.dataset.row = String(r);
           tile.dataset.col = String(c);
           tile.dataset.id = String(id);
           tilesEl.appendChild(tile);
-          applyTilePosition(tile, finalPosition);
         });
       });
 
@@ -628,8 +599,6 @@
       } else {
         overlayEl.classList.remove("show");
       }
-
-      spawnedCells = [];
     }
 
     function getLineCells(direction, index) {
@@ -689,7 +658,6 @@
       const beforeNextTileId = nextTileId;
       const beforeScore = score;
       let gained = 0;
-      spawnedCells = [];
 
       for (let i = 0; i < size; i += 1) {
         const result = slideAndMergeCells(getLineCells(direction, i));
@@ -778,7 +746,6 @@
       finished = previous.finished;
       overlayOpen = false;
       skipSpawnOnce = previous.skipSpawnOnce;
-      spawnedCells = [];
       previous = null;
       render();
       saveState();
@@ -807,7 +774,6 @@
       };
 
       board[row][col] = value * 2;
-      spawnedCells = [];
       render();
       saveState();
     }
