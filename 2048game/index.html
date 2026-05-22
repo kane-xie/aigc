@@ -31,9 +31,13 @@
       margin: 0;
       overflow: hidden;
       overscroll-behavior: none;
+      width: 100%;
+      -webkit-text-size-adjust: 100%;
     }
 
     body {
+      position: fixed;
+      inset: 0;
       display: grid;
       place-items: center;
       padding: 24px;
@@ -47,7 +51,8 @@
     }
 
     main {
-      width: min(100%, 520px);
+      width: min(calc(100vw - 48px), 520px);
+      flex: 0 0 auto;
     }
 
     .topbar {
@@ -62,7 +67,7 @@
       position: relative;
       display: inline-block;
       margin: 0;
-      font-size: clamp(52px, 16vw, 80px);
+      font-size: 80px;
       line-height: .9;
       letter-spacing: 0;
       cursor: pointer;
@@ -82,19 +87,22 @@
     }
 
     .scores {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
-      justify-content: flex-end;
+      width: 100%;
     }
 
     .score-box {
-      min-width: 82px;
+      min-width: 0;
+      height: 76px;
       padding: 10px 12px;
       border-radius: 8px;
       color: #fffaf4;
       background: #4f463c;
       text-align: center;
       box-shadow: 0 8px 20px rgba(45, 42, 38, .14);
+      overflow: hidden;
     }
 
     .score-box span {
@@ -109,9 +117,13 @@
 
     .score-box strong {
       display: block;
+      width: 100%;
       min-height: 28px;
-      font-size: 24px;
+      font-size: 26px;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
       line-height: 1.15;
+      white-space: nowrap;
     }
 
     .actions {
@@ -143,6 +155,8 @@
       font: inherit;
       font-weight: 800;
       cursor: pointer;
+      min-width: 0;
+      white-space: nowrap;
       transition: transform .12s ease, background .12s ease, opacity .12s ease;
     }
 
@@ -175,6 +189,7 @@
 
     .game-wrap {
       position: relative;
+      width: 100%;
       padding: var(--gap);
       border-radius: 8px;
       background: var(--board);
@@ -312,18 +327,30 @@
         align-items: start;
       }
 
+      main {
+        width: calc(100vw - 32px);
+      }
+
       .topbar {
         grid-template-columns: 1fr;
         align-items: stretch;
         gap: 14px;
       }
 
+      h1 {
+        font-size: 68px;
+      }
+
       .scores {
-        justify-content: stretch;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .score-box {
-        flex: 1;
+        min-width: 0;
+      }
+
+      .score-box strong {
+        font-size: 24px;
       }
 
       .actions {
@@ -333,7 +360,8 @@
 
       .buttons {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
       }
 
       .tile { font-size: 42px; }
@@ -349,7 +377,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.6</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.7</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
