@@ -126,6 +126,15 @@
       white-space: nowrap;
     }
 
+    .score-box strong[data-digits="6"] {
+      font-size: 17px;
+    }
+
+    .score-box strong[data-digits="7"],
+    .score-box strong[data-digits="8"] {
+      font-size: 18px;
+    }
+
     .actions {
       display: flex;
       align-items: center;
@@ -353,6 +362,15 @@
         font-size: 24px;
       }
 
+      .score-box strong[data-digits="6"] {
+        font-size: 17px;
+      }
+
+      .score-box strong[data-digits="7"],
+      .score-box strong[data-digits="8"] {
+        font-size: 18px;
+      }
+
       .actions {
         display: grid;
         gap: 12px;
@@ -377,7 +395,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.7</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.8</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -617,6 +635,38 @@
       return tile;
     }
 
+    function formatScoreValue(value) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0";
+
+      const sign = numeric < 0 ? "-" : "";
+      const abs = Math.abs(numeric);
+      if (abs < 1000000) return String(numeric);
+
+      const units = [
+        { threshold: 1000000000000, suffix: "T" },
+        { threshold: 1000000000, suffix: "B" },
+        { threshold: 1000000, suffix: "M" }
+      ];
+      const unit = units.find((item) => abs >= item.threshold);
+      const scaled = abs / unit.threshold;
+      const fractionDigits = scaled >= 100 ? 0 : 1;
+      const compact = scaled.toFixed(fractionDigits).replace(/\.0$/, "");
+      return `${sign}${compact}${unit.suffix}`;
+    }
+
+    function setScoreDisplay(element, value) {
+      const exact = String(value);
+      const display = formatScoreValue(value);
+      element.textContent = display;
+      element.dataset.digits = String(Math.min(display.length, 8));
+      if (display === exact) {
+        element.removeAttribute("title");
+      } else {
+        element.title = exact;
+      }
+    }
+
     function getGridStep() {
       const gap = Number.parseFloat(getComputedStyle(tilesEl).gap) || 0;
       const width = tilesEl.clientWidth;
@@ -670,9 +720,9 @@
         }, 280);
       }
 
-      scoreEl.textContent = score;
-      bestEl.textContent = best;
-      maxTileEl.textContent = Math.max(...board.flat());
+      setScoreDisplay(scoreEl, score);
+      setScoreDisplay(bestEl, best);
+      setScoreDisplay(maxTileEl, Math.max(...board.flat()));
       undoButton.disabled = !previous;
 
       if (overlayOpen) {
