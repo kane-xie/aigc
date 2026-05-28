@@ -98,6 +98,10 @@
       height: 76px;
       padding: 10px 12px;
       border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       color: #fffaf4;
       background: #4f463c;
       text-align: center;
@@ -117,22 +121,41 @@
 
     .score-box strong {
       display: block;
+      max-width: 100%;
       width: 100%;
       min-height: 28px;
       font-size: 26px;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum" 1;
-      line-height: 1.15;
-      white-space: nowrap;
+      line-height: .95;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-all;
     }
 
     .score-box strong[data-digits="6"] {
-      font-size: 17px;
+      font-size: 22px;
     }
 
-    .score-box strong[data-digits="7"],
+    .score-box strong[data-digits="7"] {
+      font-size: 20px;
+    }
+
     .score-box strong[data-digits="8"] {
       font-size: 18px;
+    }
+
+    .score-box strong[data-digits="9"] {
+      font-size: 16px;
+    }
+
+    .score-box strong[data-digits="10"],
+    .score-box strong[data-digits="11"] {
+      font-size: 14px;
+    }
+
+    .score-box strong[data-digits="12"] {
+      font-size: 13px;
     }
 
     .actions {
@@ -251,6 +274,16 @@
       contain: paint;
     }
 
+    .tile-value {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      line-height: 1;
+      text-align: center;
+    }
+
     .tile.sliding {
       transition: transform .24s cubic-bezier(.18, .72, .22, 1);
       will-change: transform;
@@ -363,12 +396,25 @@
       }
 
       .score-box strong[data-digits="6"] {
-        font-size: 17px;
+        font-size: 20px;
       }
 
-      .score-box strong[data-digits="7"],
-      .score-box strong[data-digits="8"] {
+      .score-box strong[data-digits="7"] {
         font-size: 18px;
+      }
+
+      .score-box strong[data-digits="8"] {
+        font-size: 16px;
+      }
+
+      .score-box strong[data-digits="9"] {
+        font-size: 14px;
+      }
+
+      .score-box strong[data-digits="10"],
+      .score-box strong[data-digits="11"],
+      .score-box strong[data-digits="12"] {
+        font-size: 13px;
       }
 
       .actions {
@@ -627,8 +673,11 @@
 
     function createTile(value) {
       const tile = document.createElement("div");
+      const tileValue = document.createElement("span");
       tile.className = "tile";
-      tile.textContent = value;
+      tileValue.className = "tile-value";
+      tileValue.textContent = value;
+      tile.appendChild(tileValue);
       tile.dataset.value = String(value);
       if (value > 2048) tile.classList.add("super");
       applyTilePresentation(tile, value);
@@ -638,33 +687,14 @@
     function formatScoreValue(value) {
       const numeric = Number(value);
       if (!Number.isFinite(numeric)) return "0";
-
-      const sign = numeric < 0 ? "-" : "";
-      const abs = Math.abs(numeric);
-      if (abs < 1000000) return String(numeric);
-
-      const units = [
-        { threshold: 1000000000000, suffix: "T" },
-        { threshold: 1000000000, suffix: "B" },
-        { threshold: 1000000, suffix: "M" }
-      ];
-      const unit = units.find((item) => abs >= item.threshold);
-      const scaled = abs / unit.threshold;
-      const fractionDigits = scaled >= 100 ? 0 : 1;
-      const compact = scaled.toFixed(fractionDigits).replace(/\.0$/, "");
-      return `${sign}${compact}${unit.suffix}`;
+      return String(numeric);
     }
 
     function setScoreDisplay(element, value) {
-      const exact = String(value);
       const display = formatScoreValue(value);
       element.textContent = display;
-      element.dataset.digits = String(Math.min(display.length, 8));
-      if (display === exact) {
-        element.removeAttribute("title");
-      } else {
-        element.title = exact;
-      }
+      element.dataset.digits = String(Math.min(display.length, 12));
+      element.removeAttribute("title");
     }
 
     function getGridStep() {
