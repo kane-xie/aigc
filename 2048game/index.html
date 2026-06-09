@@ -424,7 +424,7 @@
 
       .buttons {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         width: 100%;
       }
 
@@ -461,6 +461,7 @@
     <section class="actions">
       <div class="buttons">
         <button class="secondary" id="undo" type="button">撤销</button>
+        <button class="secondary" id="auto-play" type="button" aria-pressed="false">自动化</button>
         <button id="new-game" type="button">新游戏</button>
       </div>
     </section>
@@ -492,6 +493,7 @@
     const messageTitleEl = document.querySelector("#message-title");
     const messageCopyEl = document.querySelector("#message-copy");
     const undoButton = document.querySelector("#undo");
+    const autoPlayButton = document.querySelector("#auto-play");
     const newGameButton = document.querySelector("#new-game");
     const overlayAction = document.querySelector("#overlay-action");
     const gameEl = document.querySelector("#game");
@@ -509,6 +511,11 @@
     let overlayOpen = false;
     let skipSpawnOnce = false;
     let toastTimer = null;
+    let autoTimer = null;
+    let autoDirectionIndex = 0;
+    let autoBlockedMoves = 0;
+    const autoDirections = ["down", "right"];
+    const autoIntervalMs = 160;
 
     function cloneBoard(source) {
       return source.map((row) => [...row]);
@@ -656,6 +663,7 @@
     }
 
     function setupGame() {
+      stopAutomation(false);
       board = emptyBoard();
       tileIds = emptyIdBoard();
       nextTileId = 1;
@@ -812,7 +820,7 @@
     }
 
     function move(direction) {
-      if (finished) return;
+      if (finished) return false;
 
       const before = cloneBoard(board);
       const beforeIds = cloneIdBoard(tileIds);
@@ -827,7 +835,7 @@
         gained += result.gained;
       }
 
-      if (boardsEqual(before, board)) return;
+      if (boardsEqual(before, board)) return false;
 
       const shouldSkipSpawn = skipSpawnOnce;
       previous = {
@@ -862,6 +870,7 @@
 
       render(previousPositions);
       saveState();
+      return true;
     }
 
     function canMove() {
@@ -876,6 +885,7 @@
     }
 
     function showMessage(title, copy, endGame) {
+      stopAutomation(false);
       finished = endGame;
       overlayOpen = true;
       messageTitleEl.textContent = title;
@@ -894,7 +904,62 @@
       }, 1800);
     }
 
+    function setAutomationActive(active) {
+      autoPlayButton.textContent = active ? "停止" : "自动化";
+      autoPlayButton.setAttribute("aria-pressed", String(active));
+      autoPlayButton.classList.toggle("armed", active);
+    }
+
+    function stopAutomation(showNotice = false) {
+      const wasRunning = autoTimer !== null;
+      if (autoTimer !== null) {
+        clearTimeout(autoTimer);
+        autoTimer = null;
+      }
+      autoDirectionIndex = 0;
+      autoBlockedMoves = 0;
+      setAutomationActive(false);
+      if (showNotice && wasRunning) showToast("自动化已停止");
+    }
+
+    function runAutomationStep() {
+      if (autoTimer === null) return;
+      if (finished) {
+        stopAutomation(false);
+        return;
+      }
+
+      const direction = autoDirections[autoDirectionIndex];
+      autoDirectionIndex = (autoDirectionIndex + 1) % autoDirections.length;
+      const moved = move(direction);
+      autoBlockedMoves = moved ? 0 : autoBlockedMoves + 1;
+
+      if (finished || autoBlockedMoves >= 2) {
+        stopAutomation(autoBlockedMoves >= 2);
+        return;
+      }
+
+      autoTimer = setTimeout(runAutomationStep, autoIntervalMs);
+    }
+
+    function startAutomation() {
+      if (finished || autoTimer !== null) return;
+      autoDirectionIndex = 0;
+      autoBlockedMoves = 0;
+      setAutomationActive(true);
+      autoTimer = setTimeout(runAutomationStep, autoIntervalMs);
+    }
+
+    function toggleAutomation() {
+      if (autoTimer !== null) {
+        stopAutomation(false);
+      } else {
+        startAutomation();
+      }
+    }
+
     function undo() {
+      stopAutomation(false);
       if (!previous) return;
       board = cloneBoard(previous.board);
       if (previous.tileIds) {
@@ -915,6 +980,7 @@
 
     function armSkipSpawn() {
       if (finished) return;
+      stopAutomation(false);
       skipSpawnOnce = !skipSpawnOnce;
       render();
       saveState();
@@ -924,6 +990,7 @@
     function doubleTile(row, col) {
       const value = board[row]?.[col];
       if (finished || (value !== 2 && value !== 4)) return;
+      stopAutomation(false);
 
       previous = {
         board: cloneBoard(board),
@@ -966,6 +1033,7 @@
 
     function restartGameWithConfirm() {
       if (confirmRestartGame()) {
+        stopAutomation(false);
         setupGame();
       }
     }
@@ -977,6 +1045,11 @@
       } else {
         restartGameWithConfirm();
       }
+    }
+
+    function performUserMove(direction) {
+      stopAutomation(false);
+      move(direction);
     }
 
     const keyMap = {
@@ -994,7 +1067,7 @@
       const direction = keyMap[event.code];
       if (!direction) return;
       event.preventDefault();
-      move(direction);
+      performUserMove(direction);
     });
 
     window.addEventListener("resize", () => render());
@@ -1059,9 +1132,9 @@
 
       lastBoardTap = null;
       if (Math.abs(dx) > Math.abs(dy)) {
-        move(dx > 0 ? "right" : "left");
+        performUserMove(dx > 0 ? "right" : "left");
       } else {
-        move(dy > 0 ? "down" : "up");
+        performUserMove(dy > 0 ? "down" : "up");
       }
     }
 
@@ -1114,6 +1187,7 @@
     }
 
     undoButton.addEventListener("click", undo);
+    autoPlayButton.addEventListener("click", toggleAutomation);
     newGameButton.addEventListener("click", restartGameWithConfirm);
     overlayAction.addEventListener("click", continueAfterWin);
 
