@@ -177,6 +177,18 @@
       justify-content: flex-end;
     }
 
+    .automation-actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .auto-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+    }
+
     button {
       height: 42px;
       border: 0;
@@ -424,7 +436,7 @@
 
       .buttons {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         width: 100%;
       }
 
@@ -441,7 +453,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.9</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.10</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -461,7 +473,6 @@
     <section class="actions">
       <div class="buttons">
         <button class="secondary" id="undo" type="button">撤销</button>
-        <button class="secondary" id="auto-play" type="button" aria-pressed="false">自动化</button>
         <button id="new-game" type="button">新游戏</button>
       </div>
     </section>
@@ -476,6 +487,13 @@
           <p id="message-copy">没有可移动的格子了。</p>
           <button id="overlay-action" type="button">再来一局</button>
         </div>
+      </div>
+    </section>
+
+    <section class="automation-actions" aria-label="自动化操作">
+      <div class="buttons auto-buttons">
+        <button class="secondary" id="auto-left" type="button" aria-pressed="false">左自动化</button>
+        <button class="secondary" id="auto-right-down" type="button" aria-pressed="false">右下自动化</button>
       </div>
     </section>
   </main>
@@ -493,7 +511,18 @@
     const messageTitleEl = document.querySelector("#message-title");
     const messageCopyEl = document.querySelector("#message-copy");
     const undoButton = document.querySelector("#undo");
-    const autoPlayButton = document.querySelector("#auto-play");
+    const autoConfigs = {
+      left: {
+        button: document.querySelector("#auto-left"),
+        label: "左自动化",
+        directions: ["left", "left"]
+      },
+      rightDown: {
+        button: document.querySelector("#auto-right-down"),
+        label: "右下自动化",
+        directions: ["down", "right"]
+      }
+    };
     const newGameButton = document.querySelector("#new-game");
     const overlayAction = document.querySelector("#overlay-action");
     const gameEl = document.querySelector("#game");
@@ -512,9 +541,9 @@
     let skipSpawnOnce = false;
     let toastTimer = null;
     let autoTimer = null;
+    let activeAutomation = null;
     let autoDirectionIndex = 0;
     let autoBlockedMoves = 0;
-    const autoDirections = ["down", "right"];
     const autoIntervalMs = 160;
 
     function cloneBoard(source) {
@@ -904,10 +933,13 @@
       }, 1800);
     }
 
-    function setAutomationActive(active) {
-      autoPlayButton.textContent = active ? "停止" : "自动化";
-      autoPlayButton.setAttribute("aria-pressed", String(active));
-      autoPlayButton.classList.toggle("armed", active);
+    function setAutomationActive(activeMode) {
+      Object.entries(autoConfigs).forEach(([mode, config]) => {
+        const active = mode === activeMode;
+        config.button.textContent = active ? "停止" : config.label;
+        config.button.setAttribute("aria-pressed", String(active));
+        config.button.classList.toggle("armed", active);
+      });
     }
 
     function stopAutomation(showNotice = false) {
@@ -916,9 +948,10 @@
         clearTimeout(autoTimer);
         autoTimer = null;
       }
+      activeAutomation = null;
       autoDirectionIndex = 0;
       autoBlockedMoves = 0;
-      setAutomationActive(false);
+      setAutomationActive(null);
       if (showNotice && wasRunning) showToast("自动化已停止");
     }
 
@@ -929,8 +962,14 @@
         return;
       }
 
-      const direction = autoDirections[autoDirectionIndex];
-      autoDirectionIndex = (autoDirectionIndex + 1) % autoDirections.length;
+      const config = autoConfigs[activeAutomation];
+      if (!config) {
+        stopAutomation(false);
+        return;
+      }
+
+      const direction = config.directions[autoDirectionIndex];
+      autoDirectionIndex = (autoDirectionIndex + 1) % config.directions.length;
       const moved = move(direction);
       autoBlockedMoves = moved ? 0 : autoBlockedMoves + 1;
 
@@ -942,19 +981,21 @@
       autoTimer = setTimeout(runAutomationStep, autoIntervalMs);
     }
 
-    function startAutomation() {
-      if (finished || autoTimer !== null) return;
+    function startAutomation(mode) {
+      if (finished) return;
+      if (autoTimer !== null) stopAutomation(false);
+      activeAutomation = mode;
       autoDirectionIndex = 0;
       autoBlockedMoves = 0;
-      setAutomationActive(true);
+      setAutomationActive(mode);
       autoTimer = setTimeout(runAutomationStep, autoIntervalMs);
     }
 
-    function toggleAutomation() {
-      if (autoTimer !== null) {
+    function toggleAutomation(mode) {
+      if (autoTimer !== null && activeAutomation === mode) {
         stopAutomation(false);
       } else {
-        startAutomation();
+        startAutomation(mode);
       }
     }
 
@@ -1187,7 +1228,8 @@
     }
 
     undoButton.addEventListener("click", undo);
-    autoPlayButton.addEventListener("click", toggleAutomation);
+    autoConfigs.left.button.addEventListener("click", () => toggleAutomation("left"));
+    autoConfigs.rightDown.button.addEventListener("click", () => toggleAutomation("rightDown"));
     newGameButton.addEventListener("click", restartGameWithConfirm);
     overlayAction.addEventListener("click", continueAfterWin);
 
