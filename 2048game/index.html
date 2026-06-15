@@ -453,7 +453,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.10</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.13</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -492,7 +492,7 @@
 
     <section class="automation-actions" aria-label="自动化操作">
       <div class="buttons auto-buttons">
-        <button class="secondary" id="auto-left" type="button" aria-pressed="false">左自动化</button>
+        <button class="secondary" id="auto-left" type="button" aria-pressed="false">左下自动化</button>
         <button class="secondary" id="auto-right-down" type="button" aria-pressed="false">右下自动化</button>
       </div>
     </section>
@@ -514,8 +514,8 @@
     const autoConfigs = {
       left: {
         button: document.querySelector("#auto-left"),
-        label: "左自动化",
-        directions: ["left", "left"]
+        label: "左下自动化",
+        directions: ["left", "down"]
       },
       rightDown: {
         button: document.querySelector("#auto-right-down"),
@@ -844,6 +844,36 @@
       return { line: merged, gained };
     }
 
+    function wouldMoveTileAt(direction, row, col) {
+      const id = tileIds[row]?.[col];
+      if (id === null || id === undefined) return false;
+
+      const lineIndex = direction === "left" || direction === "right" ? row : col;
+      const { line } = slideAndMergeCells(getLineCells(direction, lineIndex));
+      const cells = direction === "right" || direction === "down" ? [...line].reverse() : line;
+
+      for (let i = 0; i < size; i += 1) {
+        if (cells[i]?.id !== id) continue;
+        const nextRow = direction === "left" || direction === "right" ? row : i;
+        const nextCol = direction === "left" || direction === "right" ? i : col;
+        return nextRow !== row || nextCol !== col;
+      }
+
+      return true;
+    }
+
+    function getAutomationRuleViolation(direction) {
+      if (direction === "right" && wouldMoveTileAt(direction, 3, 0)) {
+        return "自动化已停止：(1,1) 不能向右移动";
+      }
+
+      if (direction === "left" && wouldMoveTileAt(direction, 2, 3)) {
+        return "自动化已停止：(2,4) 不能向左移动";
+      }
+
+      return null;
+    }
+
     function boardsEqual(a, b) {
       return a.every((row, r) => row.every((value, c) => value === b[r][c]));
     }
@@ -970,6 +1000,13 @@
 
       const direction = config.directions[autoDirectionIndex];
       autoDirectionIndex = (autoDirectionIndex + 1) % config.directions.length;
+      const ruleViolation = getAutomationRuleViolation(direction);
+      if (ruleViolation) {
+        stopAutomation(false);
+        showToast(ruleViolation);
+        return;
+      }
+
       const moved = move(direction);
       autoBlockedMoves = moved ? 0 : autoBlockedMoves + 1;
 
