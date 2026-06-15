@@ -453,7 +453,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.13</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.15</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -473,6 +473,7 @@
     <section class="actions">
       <div class="buttons">
         <button class="secondary" id="undo" type="button">撤销</button>
+        <button class="secondary" id="erase" type="button" aria-pressed="false">消除</button>
         <button id="new-game" type="button">新游戏</button>
       </div>
     </section>
@@ -511,11 +512,12 @@
     const messageTitleEl = document.querySelector("#message-title");
     const messageCopyEl = document.querySelector("#message-copy");
     const undoButton = document.querySelector("#undo");
+    const eraseButton = document.querySelector("#erase");
     const autoConfigs = {
       left: {
         button: document.querySelector("#auto-left"),
         label: "左下自动化",
-        directions: ["left", "down"]
+        directions: ["down", "left"]
       },
       rightDown: {
         button: document.querySelector("#auto-right-down"),
@@ -539,6 +541,7 @@
     let finished = false;
     let overlayOpen = false;
     let skipSpawnOnce = false;
+    let eraseArmed = false;
     let toastTimer = null;
     let autoTimer = null;
     let activeAutomation = null;
@@ -693,6 +696,7 @@
 
     function setupGame() {
       stopAutomation(false);
+      setEraseActive(false);
       board = emptyBoard();
       tileIds = emptyIdBoard();
       nextTileId = 1;
@@ -972,6 +976,13 @@
       });
     }
 
+    function setEraseActive(active) {
+      eraseArmed = active;
+      eraseButton.textContent = active ? "取消" : "消除";
+      eraseButton.setAttribute("aria-pressed", String(active));
+      eraseButton.classList.toggle("armed", active);
+    }
+
     function stopAutomation(showNotice = false) {
       const wasRunning = autoTimer !== null;
       if (autoTimer !== null) {
@@ -1021,6 +1032,7 @@
     function startAutomation(mode) {
       if (finished) return;
       if (autoTimer !== null) stopAutomation(false);
+      setEraseActive(false);
       activeAutomation = mode;
       autoDirectionIndex = 0;
       autoBlockedMoves = 0;
@@ -1038,6 +1050,7 @@
 
     function undo() {
       stopAutomation(false);
+      setEraseActive(false);
       if (!previous) return;
       board = cloneBoard(previous.board);
       if (previous.tileIds) {
@@ -1059,6 +1072,7 @@
     function armSkipSpawn() {
       if (finished) return;
       stopAutomation(false);
+      setEraseActive(false);
       skipSpawnOnce = !skipSpawnOnce;
       render();
       saveState();
@@ -1069,6 +1083,7 @@
       const value = board[row]?.[col];
       if (finished || (value !== 2 && value !== 4)) return;
       stopAutomation(false);
+      setEraseActive(false);
 
       previous = {
         board: cloneBoard(board),
@@ -1083,6 +1098,29 @@
       board[row][col] = value * 2;
       render();
       saveState();
+    }
+
+    function eraseCell(row, col) {
+      const value = board[row]?.[col];
+      if (finished || !value) return false;
+      stopAutomation(false);
+
+      previous = {
+        board: cloneBoard(board),
+        tileIds: cloneIdBoard(tileIds),
+        nextTileId,
+        score,
+        won,
+        finished,
+        skipSpawnOnce
+      };
+
+      board[row][col] = 0;
+      tileIds[row][col] = null;
+      setEraseActive(false);
+      render();
+      saveState();
+      return true;
     }
 
     function getCellFromPoint(clientX, clientY) {
@@ -1127,6 +1165,7 @@
 
     function performUserMove(direction) {
       stopAutomation(false);
+      setEraseActive(false);
       move(direction);
     }
 
@@ -1171,6 +1210,13 @@
     function handleBoardTap(event) {
       const cell = getCellFromPoint(event.clientX, event.clientY);
       if (!cell) return;
+
+      if (eraseArmed) {
+        event.preventDefault();
+        lastBoardTap = null;
+        eraseCell(cell.row, cell.col);
+        return;
+      }
 
       const now = Date.now();
       if (lastBoardTap
@@ -1265,6 +1311,11 @@
     }
 
     undoButton.addEventListener("click", undo);
+    eraseButton.addEventListener("click", () => {
+      if (finished) return;
+      stopAutomation(false);
+      setEraseActive(!eraseArmed);
+    });
     autoConfigs.left.button.addEventListener("click", () => toggleAutomation("left"));
     autoConfigs.rightDown.button.addEventListener("click", () => toggleAutomation("rightDown"));
     newGameButton.addEventListener("click", restartGameWithConfirm);
