@@ -453,7 +453,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.16</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.17</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -1067,7 +1067,7 @@
 
     function doubleTile(row, col) {
       const value = board[row]?.[col];
-      if (finished || (value !== 2 && value !== 4)) return;
+      if (finished || (value !== 2 && value !== 4 && value !== 8)) return;
       stopAutomation(false);
 
       previous = {
