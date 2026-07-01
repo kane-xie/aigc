@@ -453,7 +453,7 @@
 <body>
   <main>
     <section class="topbar" aria-label="游戏状态">
-      <h1 id="title">2048<span class="version">v1.6.17</span></h1>
+      <h1 id="title">2048<span class="version">v1.6.18</span></h1>
       <div class="scores">
         <div class="score-box">
           <span>Score</span>
@@ -545,6 +545,9 @@
     let autoDirectionIndex = 0;
     let autoBlockedMoves = 0;
     const autoIntervalMs = 160;
+    const automationExpectedDirectionBonus = 300;
+    const automationGravityBonus = 700;
+    const automationAnchorMergeBonus = 1600;
 
     function cloneBoard(source) {
       return source.map((row) => [...row]);
@@ -943,6 +946,170 @@
       return false;
     }
 
+    function getLineValues(source, direction, index) {
+      const values = [];
+      for (let i = 0; i < size; i += 1) {
+        const r = direction === "left" || direction === "right" ? index : i;
+        const c = direction === "left" || direction === "right" ? i : index;
+        values.push(source[r][c]);
+      }
+
+      return direction === "right" || direction === "down" ? values.reverse() : values;
+    }
+
+    function setLineValues(target, direction, index, line) {
+      const values = direction === "right" || direction === "down" ? [...line].reverse() : line;
+      for (let i = 0; i < size; i += 1) {
+        if (direction === "left" || direction === "right") {
+          target[index][i] = values[i];
+        } else {
+          target[i][index] = values[i];
+        }
+      }
+    }
+
+    function slideAndMergeValues(line) {
+      const values = line.filter((value) => value !== 0);
+      const merged = [];
+      let gained = 0;
+
+      for (let i = 0; i < values.length; i += 1) {
+        if (values[i] === values[i + 1]) {
+          const next = values[i] * 2;
+          merged.push(next);
+          gained += next;
+          i += 1;
+        } else {
+          merged.push(values[i]);
+        }
+      }
+
+      while (merged.length < size) merged.push(0);
+      return { line: merged, gained };
+    }
+
+    function simulateBoardMove(source, direction) {
+      const next = cloneBoard(source);
+      const lineGains = [];
+      let gained = 0;
+
+      for (let i = 0; i < size; i += 1) {
+        const result = slideAndMergeValues(getLineValues(source, direction, i));
+        setLineValues(next, direction, i, result.line);
+        lineGains[i] = result.gained;
+        gained += result.gained;
+      }
+
+      return {
+        board: next,
+        gained,
+        lineGains,
+        moved: !boardsEqual(source, next)
+      };
+    }
+
+    function getAutomationHorizontalDirection(config) {
+      return config.directions.find((direction) => direction === "left" || direction === "right") || "left";
+    }
+
+    function getAutomationAnchorColumn(config) {
+      return getAutomationHorizontalDirection(config) === "left" ? 0 : size - 1;
+    }
+
+    function getAutomationPath(config) {
+      const horizontal = getAutomationHorizontalDirection(config);
+      const path = [];
+
+      for (let r = size - 1; r >= 0; r -= 1) {
+        const anchorToEdge = (size - 1 - r) % 2 === 0;
+        const cols = horizontal === "left"
+          ? (anchorToEdge ? [0, 1, 2, 3] : [3, 2, 1, 0])
+          : (anchorToEdge ? [3, 2, 1, 0] : [0, 1, 2, 3]);
+        cols.forEach((c) => path.push([r, c]));
+      }
+
+      return path;
+    }
+
+    function tileRank(value) {
+      return value > 0 ? Math.log2(value) : 0;
+    }
+
+    function countEmptyCells(source) {
+      return source.reduce((total, row) => total + row.filter((value) => value === 0).length, 0);
+    }
+
+    function scoreAutomationBoard(source, config) {
+      const path = getAutomationPath(config);
+      const maxTile = Math.max(...source.flat());
+      let score = 0;
+
+      path.forEach(([r, c], index) => {
+        const priority = path.length - index;
+        score += tileRank(source[r][c]) * priority * priority * 8;
+      });
+
+      for (let i = 0; i < path.length - 1; i += 1) {
+        const [r, c] = path[i];
+        const [nextR, nextC] = path[i + 1];
+        const currentRank = tileRank(source[r][c]);
+        const nextRank = tileRank(source[nextR][nextC]);
+        if (nextRank > currentRank) {
+          score -= (nextRank - currentRank) * (path.length - i) * 25;
+        }
+      }
+
+      const [anchorRow, anchorCol] = path[0];
+      score += source[anchorRow][anchorCol] === maxTile ? 1200 : -1200;
+      score += countEmptyCells(source) * 80;
+      return score;
+    }
+
+    function scoreAutomationCandidate(source, direction, config, expectedDirection, simulation) {
+      let score = scoreAutomationBoard(simulation.board, config) + simulation.gained * 2;
+
+      if (direction === "down") score += automationGravityBonus;
+      if (direction === expectedDirection) score += automationExpectedDirectionBonus;
+      if (direction === "down") {
+        score += simulation.lineGains[getAutomationAnchorColumn(config)] > 0
+          ? automationAnchorMergeBonus
+          : 0;
+      }
+
+      return score;
+    }
+
+    function chooseAutomationDirection(config) {
+      const expectedDirection = config.directions[autoDirectionIndex];
+      const candidates = [];
+      const ruleViolations = [];
+
+      config.directions.forEach((direction, directionIndex) => {
+        const ruleViolation = getAutomationRuleViolation(direction);
+        if (ruleViolation) {
+          ruleViolations.push(ruleViolation);
+          return;
+        }
+
+        const simulation = simulateBoardMove(board, direction);
+        if (!simulation.moved) return;
+
+        candidates.push({
+          direction,
+          directionIndex,
+          expectedDirection,
+          score: scoreAutomationCandidate(board, direction, config, expectedDirection, simulation)
+        });
+      });
+
+      if (!candidates.length) {
+        return { direction: null, ruleViolation: ruleViolations[0] || null };
+      }
+
+      candidates.sort((a, b) => b.score - a.score || a.directionIndex - b.directionIndex);
+      return candidates[0];
+    }
+
     function showMessage(title, copy, endGame) {
       stopAutomation(false);
       finished = endGame;
@@ -998,17 +1165,19 @@
         return;
       }
 
-      const direction = config.directions[autoDirectionIndex];
-      autoDirectionIndex = (autoDirectionIndex + 1) % config.directions.length;
-      const ruleViolation = getAutomationRuleViolation(direction);
-      if (ruleViolation) {
+      const choice = chooseAutomationDirection(config);
+      if (!choice.direction) {
         stopAutomation(false);
-        showToast(ruleViolation);
+        showToast(choice.ruleViolation || "自动化已停止");
         return;
       }
 
+      const direction = choice.direction;
       const moved = move(direction);
       autoBlockedMoves = moved ? 0 : autoBlockedMoves + 1;
+      if (moved && direction === choice.expectedDirection) {
+        autoDirectionIndex = (autoDirectionIndex + 1) % config.directions.length;
+      }
 
       if (finished || autoBlockedMoves >= 2) {
         stopAutomation(autoBlockedMoves >= 2);
